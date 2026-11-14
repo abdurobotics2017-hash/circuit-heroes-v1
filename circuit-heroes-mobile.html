@@ -174,6 +174,18 @@ canvas#fx{position:absolute;inset:0;z-index:6;pointer-events:none}
 .cc{display:inline-block;padding:1px 9px;border-radius:999px;font-weight:800;font-size:12px;color:#111}
 .cc.R{background:var(--r)}.cc.C{background:var(--c)}.cc.L{background:var(--l)}
 .warn{color:#ffa8a8;font-size:12.5px;margin-top:8px}
+#valBox details{background:#0005;border:1px solid var(--line);border-radius:12px;padding:9px 11px;margin-bottom:6px}
+#valBox summary{cursor:pointer;font-weight:700;font-size:13px;list-style:none}
+#valBox summary::-webkit-details-marker{display:none}
+#valBox summary::after{content:"▾";float:right;color:var(--mut)}
+#valBox details[open] summary::after{content:"▴"}
+.valrow{display:grid;grid-template-columns:34px 1fr 82px;gap:8px;align-items:center;margin-top:8px}
+.valrow input[type=range]{width:100%;accent-color:#ffd43b;height:30px;margin:0}
+.valrow output{font-family:Consolas,monospace;font-size:12.5px;text-align:right;color:var(--acc)}
+.valrow .cc{text-align:center}
+.valx{font-size:11.5px;color:var(--mut);margin:0 0 0 42px;font-family:Consolas,monospace}
+.valx.hot{color:#ffa94d}
+.valbtn{margin-top:8px;width:100%;padding:7px;font-size:12.5px}
 #colGrid{max-height:330px;overflow-y:auto}
 .colrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px;margin-bottom:10px}
 .colh{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin:6px 0}
@@ -369,6 +381,7 @@ button,.card,.pk{touch-action:manipulation;-webkit-tap-highlight-color:transpare
         <button class="tab on" data-act="tab" data-v="1">Level 1 (2 hero)</button>
         <button class="tab" data-act="tab" data-v="2">Level 2 (3 hero)</button>
       </div>
+      <div id="valBox"></div>
       <div id="fusionBody"></div>
     </div>
     <div class="panel colpanel">
@@ -402,7 +415,7 @@ const CFG = {
   CRIT_PER_A: .04,    // tiap 1 A menambah peluang crit
   CRIT_MAX_EXTRA: .35,
   SAFE_I: 5,          // arus aman (A)
-  RECOIL_K: 4,        // damage balik per A di atas batas
+  RECOIL_K: 6,        // damage balik per A di atas batas
   MIN_Z: 1,           // |Z| minimum (mencegah arus tak hingga)
   PLAYER_HP: 200,
   SAVE_KEY: 'circuitHeroes.v1'
@@ -422,11 +435,20 @@ const cx = {
                    return {re: (a.re * b.re + a.im * b.im) / d, im: (a.im * b.re - a.re * b.im) / d}; },
   abs: a => Math.hypot(a.re, a.im)
 };
-function compZ(k) {
-  if (k === 'R') return {re: 5, im: 0};
-  if (k === 'C') return {re: 0, im: -1 / (OMEGA * 1000e-6)};   // Xc = 1/(2πfC)
-  return {re: 0, im: OMEGA * 0.025};                            // XL = 2πfL
+const DEFAULT_VALS = {R: 5, C: 1000, L: 25};   // Ω, µF, mH
+const VAL_RANGE = {
+  R: {min: 2,   max: 20,   step: .5, unit: 'Ω'},
+  C: {min: 100, max: 2200, step: 50, unit: 'µF'},
+  L: {min: 5,   max: 100,  step: 1,  unit: 'mH'}
+};
+function compZ(k, vals) {
+  const v = vals || DEFAULT_VALS;
+  if (k === 'R') return {re: v.R, im: 0};
+  if (k === 'C') return {re: 0, im: -1 / (OMEGA * v.C * 1e-6)};   // Xc = 1/(2πfC)
+  return {re: 0, im: OMEGA * v.L * 1e-3};                          // XL = 2πfL
 }
+const compLabel = (k, v) => `${v[k]} ${VAL_RANGE[k].unit}`;
+const valsText = (id, v) => [...new Set(id.split(''))].map(k => `${k} = ${compLabel(k, v)}`).join(' · ');
 const combine = (a, b, mode) => mode === 'P' ? cx.div(cx.mul(a, b), cx.add(a, b)) : cx.add(a, b);
 
 function calc(Z, V, mult, isSkill) {
@@ -505,24 +527,25 @@ function planL2(src, add) {
   return {valid: true, resId, like: false, pair: src.split(''), single: add};
 }
 const sym = m => m === 'P' ? ' ∥ ' : ' + ';
-function computeBuild(id, modes, plan) {
-  const h = HEROES[id], steps = []; modes = modes || []; let Z, desc;
-  if (h.level === 0) { Z = compZ(id); desc = `${COMP[id].name} (${COMP[id].label})`; }
+function computeBuild(id, modes, plan, vals) {
+  const h = HEROES[id], steps = []; modes = modes || []; vals = Object.assign({}, DEFAULT_VALS, vals || {}); let Z, desc;
+  const zc = k => compZ(k, vals);
+  if (h.level === 0) { Z = zc(id); desc = `${COMP[id].name} (${compLabel(id, vals)})`; }
   else if (h.level === 1) {
     const [a, b] = id.split(''), m = modes[0] || 'S';
-    Z = combine(compZ(a), compZ(b), m);
-    steps.push({la: a, lb: b, za: compZ(a), zb: compZ(b), m, out: Z});
+    Z = combine(zc(a), zc(b), m);
+    steps.push({la: a, lb: b, za: zc(a), zb: zc(b), m, out: Z});
     desc = a + sym(m) + b;
   } else {
     plan = plan || defaultPlan(id);
     const m1 = modes[0] || 'S', m2 = modes[1] || 'S', [p, q] = plan.pair;
-    const z1 = combine(compZ(p), compZ(q), m1);
-    steps.push({la: p, lb: q, za: compZ(p), zb: compZ(q), m: m1, out: z1});
-    Z = combine(z1, compZ(plan.single), m2);
-    steps.push({la: `(${p}${sym(m1)}${q})`, lb: plan.single, za: z1, zb: compZ(plan.single), m: m2, out: Z});
+    const z1 = combine(zc(p), zc(q), m1);
+    steps.push({la: p, lb: q, za: zc(p), zb: zc(q), m: m1, out: z1});
+    Z = combine(z1, zc(plan.single), m2);
+    steps.push({la: `(${p}${sym(m1)}${q})`, lb: plan.single, za: z1, zb: zc(plan.single), m: m2, out: Z});
     desc = `(${p}${sym(m1)}${q})${sym(m2)}${plan.single}`;
   }
-  return {id, Z, desc, steps, modes: modes.slice(), plan: plan || null};
+  return {id, Z, desc, steps, modes: modes.slice(), plan: plan || null, vals};
 }
 
 /* ---------- 4. SUARA (Web Audio API) ---------- */
@@ -800,7 +823,9 @@ const TIPS = [
   ['Resonansi', 'Pada rangkaian seri, X<sub>L</sub> (+j) dan X<sub>C</sub> (−j) saling meniadakan. Jika X<sub>L</sub> = X<sub>C</sub>, terjadi resonansi dan Z hanya tersisa R — arus melonjak!'],
   ['Arus berlebih', 'Arus di atas 5 A menimbulkan panas (I²R). Hero menerima damage balik — hati-hati memakai baterai bertegangan tinggi.'],
   ['Aturan Fusion Level 2', 'Jika ada komponen sejenis (misal R dan R), gabungkan dulu komponen sejenis, baru gabungkan dengan komponen yang berbeda. Tiap tahap punya mode Seri/Paralel sendiri.'],
-  ['Baterai', 'Serangan biasa memakai baterai dasar 12 V. Skill memakai baterai pilihanmu (1 muatan) dengan pengali ×1,5 — kalahkan awan untuk hadiah baterai baru.']
+  ['Baterai', 'Serangan biasa memakai baterai dasar 12 V. Skill memakai baterai pilihanmu (1 muatan) dengan pengali ×1,5 — kalahkan awan untuk hadiah baterai baru.'],
+  ['Mengatur nilai komponen', 'Di Lab Fusion kamu bisa mengubah R, C, dan L. R besar → Z besar → arus kecil. C besar → X<sub>C</sub> kecil. L besar → X<sub>L</sub> besar. Nilai yang dipakai tersimpan pada hero hasil fusion.'],
+  ['Frekuensi resonansi', 'Resonansi terjadi pada f₀ = 1/(2π√(LC)). Jika f₀ mendekati 50 Hz maka X<sub>L</sub> ≈ X<sub>C</sub>, sehingga rangkaian L-C seri hampir hanya menyisakan R dan arus bisa melonjak.']
 ];
 let state;
 function newState(keepCol) {
@@ -813,6 +838,7 @@ function newState(keepCol) {
     busy: false, over: false, tip: 0, hero: null,
     fu: {tab: 1, a: 'R', b: 'R', m: 'S', src: null, add: 'R', m1: 'S', m2: 'S'}
   };
+  state.vals = Object.assign({}, DEFAULT_VALS);
   state.hero = computeBuild('R', []);
 }
 function save() {
@@ -873,7 +899,7 @@ function renderHeroCard() {
       <div class="nm">${h.name}<span class="lv">${h.level === 0 ? 'Dasar' : 'Fusion L' + h.level}</span></div>
       <div class="mut" style="font-size:12.5px">${b.desc}</div>
       <div class="zline">Z = ${fmtZ(b.Z)}</div>
-      <div class="zline">|Z| = ${f1(c1.mag)} Ω</div>
+      <div class="zline">|Z| = ${f1(c1.mag)} Ω</div>${h.level ? `<div class="mut" style="font-size:12px">${valsText(b.id, b.vals)}</div>` : ''}
     </div></div>
     <div class="calcs">
       <div class="calcbox"><h4>Serangan biasa · ${CFG.BASE_V} V</h4>I = <span class="i">${f1(c1.I)} A</span><br>P = <span class="p">${f1(c1.P)} W</span><br>Damage ≈ <b>${c1.base}</b> · Crit ${Math.round(c1.chance * 100)}%</div>
@@ -908,16 +934,16 @@ const basePick = (slot, cur) => ['R', 'C', 'L'].map(k => `<button class="pk ${cu
 function previewHTML(b) {
   const h = HEROES[b.id], c = calc(b.Z, CFG.BASE_V, 1, false);
   return `<div class="preview">${imgTag(b.id)}<div><b>${h.name}</b><span class="lv">L${h.level}</span>
-    <div class="zline">${b.desc}</div><div class="zline">Z = ${fmtZ(b.Z)}</div>
+    <div class="zline">${b.desc}</div><div class="mut">${valsText(b.id, b.vals)}</div><div class="zline">Z = ${fmtZ(b.Z)}</div>
     <div class="mut">|Z| = ${f1(c.mag)} Ω → pada ${CFG.BASE_V} V: I = ${f1(c.I)} A, P = ${f1(c.P)} W</div>
     <div class="mut">Skill: ${h.skill}</div></div></div>`;
 }
 function currentFusionBuild() {
   const f = state.fu;
-  if (f.tab === 1) return computeBuild(BY_KEY[sortKey(f.a + f.b)], [f.m]);
+  if (f.tab === 1) return computeBuild(BY_KEY[sortKey(f.a + f.b)], [f.m], null, state.vals);
   if (!f.src) return null;
   const pl = planL2(f.src, f.add); if (!pl.valid) return {invalid: pl};
-  return computeBuild(pl.resId, [f.m1, f.m2], pl);
+  return computeBuild(pl.resId, [f.m1, f.m2], pl, state.vals);
 }
 function renderFusion() {
   const f = state.fu, body = $('#fusionBody'); let html = '';
@@ -955,7 +981,7 @@ function renderFusion() {
   }
   body.innerHTML = html;
 }
-function renderAll() { renderStats(); renderBatteries(); renderFusion(); renderCollection(); updateHP(); renderStatus(); setHeroImage(false); }
+function renderAll() { renderStats(); renderBatteries(); renderFusion(); renderCollection(); updateHP(); renderStatus(); setHeroImage(false); syncValBox(); }
 
 /* modal */
 function showModal(title, body, btn, cb) {
@@ -969,9 +995,34 @@ function helpHTML() {
   <li><b>Fusion L1:</b> gabungkan 2 hero dasar (boleh sama) dengan mode Seri atau Paralel.</li>
   <li><b>Fusion L2:</b> hero L1 + 1 hero dasar. Komponen sejenis digabung dulu, lalu dengan yang berbeda; tiap tahap punya mode sendiri.</li>
   <li><b>Serangan biasa</b> memakai baterai dasar 12 V (gratis). <b>Skill</b> memakai baterai pilihan (−1 muatan), damage ×1,5 dan efek visual penuh.</li>
+  <li><b>Nilai komponen:</b> atur R, C, dan L lewat panel ⚙ di Lab Fusion sebelum menekan FUSI! — nilainya ikut tersimpan pada hero hasil fusion.</li>
   <li>Fusion tidak memakai giliran — bereksperimenlah dulu, lihat pratinjau Z, I, dan P, baru serang!</li>
   <li>Arus &gt; 5 A membuat hero kepanasan (damage balik). Menang → hadiah acak: baterai atau hero baru.</li></ul>
   <p class="mut">Gambar hero dibaca dari folder <code>heroes/</code>. Jika file belum ada, game memakai gambar pengganti otomatis.</p>`;
+}
+
+/* ---------- Pengaturan nilai komponen (Lab Fusion) ---------- */
+function initValBox() {
+  const rows = ['R', 'C', 'L'].map(k => { const r = VAL_RANGE[k];
+    return `<div class="valrow"><span class="cc ${k}">${k}</span><input type="range" data-k="${k}" min="${r.min}" max="${r.max}" step="${r.step}" value="${DEFAULT_VALS[k]}" aria-label="Nilai ${COMP[k].name}"><output id="valOut${k}"></output></div><div class="valx" id="valX${k}"></div>`; }).join('');
+  $('#valBox').innerHTML = `<details id="valDetails"><summary>⚙ Nilai Komponen (R · C · L)</summary>${rows}<div class="valx" id="valRes" style="margin-top:8px"></div><div class="note">Nilai ini dipakai saat menekan FUSI! dan tersimpan pada hero hasil fusion. Hero dasar selalu memakai nilai awal.</div><button class="btn valbtn" id="btnValReset">↺ Kembalikan nilai awal</button></details>`;
+  $('#valDetails').open = !window.matchMedia('(max-width:820px)').matches;
+  $('#valBox').addEventListener('input', e => {
+    const t = e.target; if (!t.matches('input[type=range]') || state.busy) return;
+    state.vals[t.dataset.k] = +t.value; syncValBox(true); renderFusion();
+  });
+  $('#btnValReset').onclick = () => { if (state.busy) return; state.vals = Object.assign({}, DEFAULT_VALS); syncValBox(); renderFusion(); };
+}
+function syncValBox(keepInputs) {
+  if (!$('#valDetails')) return;
+  ['R', 'C', 'L'].forEach(k => {
+    const inp = $('#valBox input[data-k="' + k + '"]'); if (!keepInputs) inp.value = state.vals[k];
+    $('#valOut' + k).textContent = compLabel(k, state.vals);
+    const z = compZ(k, state.vals);
+    $('#valX' + k).textContent = k === 'R' ? `Z = ${f1(z.re)} Ω (tak bergantung frekuensi)` : `${k === 'C' ? 'Xc' : 'XL'} = ${z.im < 0 ? '−' : '+'}j${f1(Math.abs(z.im))} Ω pada ${CFG.F} Hz`;
+  });
+  const f0 = 1 / (2 * Math.PI * Math.sqrt(state.vals.L * 1e-3 * state.vals.C * 1e-6)), near = Math.abs(f0 - CFG.F) / CFG.F < .1;
+  const el = $('#valRes'); el.textContent = `Resonansi L–C: f₀ = ${f1(f0)} Hz (sumber ${CFG.F} Hz)${near ? ' – hampir resonan!' : ''}`; el.classList.toggle('hot', near);
 }
 
 /* ---------- Fusion actions ---------- */
@@ -980,7 +1031,7 @@ async function doFusion() {
   const b = currentFusionBuild(); if (!b || b.invalid) return;
   Sound.init(); setBusy(true);
   const h = HEROES[b.id], level = h.level, firstTime = !state.owned.has(b.id);
-  state.owned.add(b.id); state.builds[b.id] = {modes: b.modes, plan: b.plan}; save();
+  state.owned.add(b.id); state.builds[b.id] = {modes: b.modes, plan: b.plan, vals: b.vals}; save();
   const comps = b.id.split(''), colors = level === 1 ? comps.map(c => COMP[c].color) : comps.map(c => COMP[c].color);
   Sound.play('fusion');
   const hc = ctr($('#hero'));
@@ -989,6 +1040,7 @@ async function doFusion() {
   banner(`FUSION LEVEL ${level} BERHASIL!`, `${h.name} · ${b.desc}`);
   const lines = b.steps.map((s, i) => `Tahap ${i + 1}: ${s.la} ${s.m === 'P' ? '∥' : '+'} ${s.lb} (${s.m === 'P' ? 'paralel' : 'seri'}) → Z = <span class="z">${fmtZ(s.out)}</span>`);
   lines.push(`|Z| = <span class="z">${f1(cx.abs(b.Z))} Ω</span> · pada ${CFG.BASE_V} V: I = <span class="i">${f1(CFG.BASE_V / Math.max(cx.abs(b.Z), CFG.MIN_Z))} A</span>`);
+  lines.unshift(`Nilai komponen: ${valsText(b.id, b.vals)}`);
   logEntry('fu', `🔮 Fusion L${level}: ${h.name} ${firstTime ? '<span class="gd">(hero baru ditemukan!)</span>' : ''}`, lines);
   const note = b.plan && b.plan.like ? `Aturan Level 2: komponen sejenis (${b.plan.pair[0]} &amp; ${b.plan.pair[1]}) digabung dulu, baru dengan ${b.plan.single}.<br>` : '';
   const edu = note + eduForFusion(b);
@@ -1005,7 +1057,7 @@ function eduForFusion(b) {
 }
 function equip(id) {
   if (state.busy || !state.owned.has(id) || state.hero.id === id) return;
-  const sv = state.builds[id] || {}; state.hero = computeBuild(id, sv.modes || [], sv.plan);
+  const sv = state.builds[id] || {}; state.hero = computeBuild(id, sv.modes || [], sv.plan, sv.vals);
   Sound.init(); Sound.play('click'); setHeroImage(true); renderBatteries(); renderCollection();
   setEdu(`Hero aktif: ${HEROES[id].name}`, `Rangkaian: <b>${state.hero.desc}</b><br>Z = ${fmtZ(state.hero.Z)}<br>Lihat kotak perhitungan di bawah arena untuk I dan P.`);
 }
@@ -1174,6 +1226,7 @@ document.querySelectorAll('#topNav button').forEach(b => b.onclick = () => { Sou
 /* ---------- Mulai ---------- */
 setView('battle', true);
 FX.resize();
+initValBox();
 startRun(true);
 showModal('⚡ Circuit Heroes – Fusion Strategy', helpHTML(), 'Mulai Bermain ▸');
 </script>
