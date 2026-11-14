@@ -823,7 +823,7 @@ const TIPS = [
   ['Resonansi', 'Pada rangkaian seri, X<sub>L</sub> (+j) dan X<sub>C</sub> (−j) saling meniadakan. Jika X<sub>L</sub> = X<sub>C</sub>, terjadi resonansi dan Z hanya tersisa R — arus melonjak!'],
   ['Arus berlebih', 'Arus di atas 5 A menimbulkan panas (I²R). Hero menerima damage balik — hati-hati memakai baterai bertegangan tinggi.'],
   ['Aturan Fusion Level 2', 'Jika ada komponen sejenis (misal R dan R), gabungkan dulu komponen sejenis, baru gabungkan dengan komponen yang berbeda. Tiap tahap punya mode Seri/Paralel sendiri.'],
-  ['Baterai', 'Serangan biasa memakai baterai dasar 12 V. Skill memakai baterai pilihanmu (1 muatan) dengan pengali ×1,5 — kalahkan awan untuk hadiah baterai baru.'],
+  ['Baterai', 'Serangan biasa memakai baterai dasar 3.7 V. Skill memakai baterai pilihanmu (1 muatan) dengan pengali ×1,5 — kalahkan awan untuk hadiah baterai baru.'],
   ['Mengatur nilai komponen', 'Di Lab Fusion kamu bisa mengubah R, C, dan L. R besar → Z besar → arus kecil. C besar → X<sub>C</sub> kecil. L besar → X<sub>L</sub> besar. Nilai yang dipakai tersimpan pada hero hasil fusion.'],
   ['Frekuensi resonansi', 'Resonansi terjadi pada f₀ = 1/(2π√(LC)). Jika f₀ mendekati 50 Hz maka X<sub>L</sub> ≈ X<sub>C</sub>, sehingga rangkaian L-C seri hampir hanya menyisakan R dan arus bisa melonjak.']
 ];
@@ -911,7 +911,7 @@ function renderBatteries() {
   const el = $('#bats');
   el.innerHTML = state.batteries.length ? state.batteries.map((b, i) =>
     `<button class="bat ${i === state.selBat ? 'sel' : ''}" data-i="${i}"><span class="v">⚡${b.v} V</span><span class="pips">${'●'.repeat(Math.min(b.ch, 8))}</span></button>`).join('')
-    : '<span class="none">Baterai bermuatan habis. Serangan biasa tetap memakai baterai dasar 12 V.</span>';
+    : '<span class="none">Baterai bermuatan habis. Serangan biasa tetap memakai baterai dasar 3.7 V.</span>';
   refreshButtons(); renderHeroCard();
 }
 function refreshButtons() {
@@ -994,7 +994,7 @@ function helpHTML() {
   <li><b>Damage = Daya</b>: P = V × I. <b>Critical = Arus</b>: I = V / Z. Z berasal dari komponen &amp; hasil fusion-mu.</li>
   <li><b>Fusion L1:</b> gabungkan 2 hero dasar (boleh sama) dengan mode Seri atau Paralel.</li>
   <li><b>Fusion L2:</b> hero L1 + 1 hero dasar. Komponen sejenis digabung dulu, lalu dengan yang berbeda; tiap tahap punya mode sendiri.</li>
-  <li><b>Serangan biasa</b> memakai baterai dasar 12 V (gratis). <b>Skill</b> memakai baterai pilihan (−1 muatan), damage ×1,5 dan efek visual penuh.</li>
+  <li><b>Serangan biasa</b> memakai baterai dasar 3.7 V (gratis). <b>Skill</b> memakai baterai pilihan (−1 muatan), damage ×1,5 dan efek visual penuh.</li>
   <li><b>Nilai komponen:</b> atur R, C, dan L lewat panel ⚙ di Lab Fusion sebelum menekan FUSI! — nilainya ikut tersimpan pada hero hasil fusion.</li>
   <li>Fusion tidak memakai giliran — bereksperimenlah dulu, lihat pratinjau Z, I, dan P, baru serang!</li>
   <li>Arus &gt; 5 A membuat hero kepanasan (damage balik). Menang → hadiah acak: baterai atau hero baru.</li></ul>
