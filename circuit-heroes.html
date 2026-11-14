@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Circuit Heroes – Fusion Strategy</title>
+<style>
+:root{
+  --bg:#0a0e1f; --panel:rgba(255,255,255,.045); --line:rgba(255,255,255,.1);
+  --txt:#e8ecff; --mut:#9aa3c7; --acc:#ffd43b;
+  --r:#ff9f43; --c:#2bcbba; --l:#a55eea; --good:#51cf66; --bad:#ff6b6b;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:'Segoe UI',system-ui,Roboto,Arial,sans-serif; color:var(--txt); min-height:100vh;
+  background:radial-gradient(1200px 600px at 15% -10%,#1d2a6b66,transparent),
+             radial-gradient(900px 500px at 100% 0,#5b1f8a55,transparent),var(--bg);
+}
+button{font-family:inherit;color:inherit;cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.45}
+b{font-weight:700}
+.mut{color:var(--mut)}
+
+/* ===== Header ===== */
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  max-width:1500px;margin:0 auto;padding:14px 16px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:24px;
+  background:linear-gradient(135deg,#ffd43b,#ff922b);box-shadow:0 0 22px #ffd43b66;color:#222}
+h1{font-size:22px;margin:0;letter-spacing:.3px}
+.brand small{color:var(--mut)}
+.stats{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;color:var(--mut)}
+.chip b{color:var(--txt)}
+.head-btns{display:flex;gap:8px}
+.btn{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:14px;transition:.15s}
+.btn:hover:not(:disabled){background:rgba(255,255,255,.1)}
+
+/* ===== Layout ===== */
+main{display:grid;grid-template-columns:minmax(0,1fr) 410px;gap:16px;padding:0 16px 24px;max-width:1500px;margin:0 auto}
+.left,.right{display:flex;flex-direction:column;gap:16px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;backdrop-filter:blur(6px)}
+.panel h3{margin:0 0 10px;font-size:14px;letter-spacing:.6px;text-transform:uppercase;color:var(--mut);display:flex;justify-content:space-between;align-items:center}
+@media (max-width:1050px){main{grid-template-columns:1fr}}
+
+/* ===== Arena ===== */
+#arena{position:relative;height:430px;border-radius:18px;overflow:hidden;border:1px solid var(--line);
+  background:linear-gradient(180deg,#141a47 0%,#2a3a7c 55%,#3d4f96 100%);box-shadow:0 10px 40px #0008}
+#arena::before{content:"";position:absolute;inset:0;
+  background:radial-gradient(2px 2px at 20% 20%,#fff8,transparent),radial-gradient(2px 2px at 70% 12%,#fff8,transparent),
+             radial-gradient(1.5px 1.5px at 45% 30%,#fff6,transparent),radial-gradient(1.5px 1.5px at 88% 40%,#fff6,transparent),
+             radial-gradient(1.5px 1.5px at 8% 55%,#fff6,transparent)}
+.ground{position:absolute;left:0;right:0;bottom:0;height:90px;
+  background:
+    linear-gradient(90deg,transparent 0 48%,#2bcbba33 48% 52%,transparent 52%),
+    repeating-linear-gradient(90deg,#ffffff0a 0 2px,transparent 2px 46px),
+    repeating-linear-gradient(0deg,#ffffff0a 0 2px,transparent 2px 30px),
+    linear-gradient(180deg,#0f3b3a,#07201f);
+  border-top:2px solid #2bcbba66;box-shadow:0 -10px 30px #2bcbba22}
+.hud{position:absolute;top:12px;width:40%;z-index:5}
+.hud-player{left:14px}.hud-enemy{right:14px;text-align:right}
+.hud .nm{font-weight:700;font-size:14px;margin-bottom:5px;text-shadow:0 1px 4px #000}
+.hud .nm small{color:#cfd6ff;font-weight:400;margin-left:6px}
+.hp{position:relative;height:18px;border-radius:10px;background:#0009;border:1px solid #fff3;overflow:hidden}
+.hp i{position:absolute;left:0;top:0;bottom:0;width:100%;background:linear-gradient(90deg,#37b24d,#82c91e);transition:width .5s}
+.hp.low i{background:linear-gradient(90deg,#e03131,#ff922b)}
+.hp.enemy i{background:linear-gradient(90deg,#9c36b5,#f06595)}
+.hp span{position:absolute;inset:0;display:grid;place-items:center;font-size:11px;font-weight:700;text-shadow:0 1px 2px #000}
+.status{min-height:20px;margin-top:5px;font-size:12px;color:#ffe066;text-shadow:0 1px 3px #000}
+
+.unit{position:absolute;bottom:62px;z-index:3;transition:transform .22s ease-out}
+.unit::after{content:"";position:absolute;left:10%;right:10%;bottom:-10px;height:16px;border-radius:50%;background:radial-gradient(#000a,transparent 70%);z-index:-1}
+.hero{left:9%;width:170px}
+.hero.lunge{transform:translateX(46px)}
+.enemy{right:7%;bottom:110px;width:240px}
+.enemy.lunge{transform:translateX(-46px)}
+.sprite{width:100%}
+.hero .sprite{animation:bob 2.4s ease-in-out infinite}
+.hero .sprite.pop{animation:pop .9s ease-out}
+.enemy .sprite{animation:float 3.2s ease-in-out infinite;filter:drop-shadow(0 0 18px #9c36b5aa)}
+.enemy.enter{animation:enter .8s ease-out}
+.enemy.defeat .sprite{animation:defeat .9s forwards}
+#heroImg{width:100%;height:200px;object-fit:contain;filter:drop-shadow(0 6px 14px #000a)}
+.unit.hit{animation:shake .35s}
+.unit.hit .sprite{filter:brightness(2.2) drop-shadow(0 0 10px #fff)}
+.plate{position:absolute;left:50%;bottom:-34px;transform:translateX(-50%);white-space:nowrap;font-size:12px;
+  background:#000a;border:1px solid #fff3;border-radius:999px;padding:3px 12px}
+canvas#fx{position:absolute;inset:0;z-index:6;pointer-events:none}
+#floaters{position:absolute;inset:0;z-index:8;pointer-events:none}
+.floater{position:absolute;transform:translate(-50%,-50%);font-weight:900;font-size:28px;text-shadow:0 2px 8px #000,0 0 12px currentColor;animation:rise 1.25s ease-out forwards;white-space:nowrap}
+.floater.dmg{color:#ff8787}.floater.pdmg{color:#ffa8a8}.floater.heal{color:#8ce99a}
+.floater.crit{color:#ffe066;font-size:46px;letter-spacing:1px}
+.floater.info{color:#74c0fc;font-size:20px}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;z-index:7;pointer-events:none}
+#flash.go{animation:flash .45s}
+#arena.shake{animation:ashake .45s}
+#banner{position:absolute;left:50%;top:24%;transform:translate(-50%,-50%) scale(.8);z-index:9;text-align:center;opacity:0;pointer-events:none;transition:.35s}
+#banner.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#banner h2{margin:0;font-size:34px;letter-spacing:2px;text-shadow:0 0 22px #ffd43b,0 3px 8px #000;color:#fff3bf}
+#banner p{margin:4px 0 0;color:#e7f5ff;text-shadow:0 2px 6px #000}
+#eduPop{position:absolute;left:50%;bottom:98px;transform:translateX(-50%) translateY(10px);z-index:9;max-width:86%;
+  background:#0a0e1fe6;border:1px solid #74c0fc88;border-radius:12px;padding:9px 14px;font-size:13px;line-height:1.45;
+  opacity:0;pointer-events:none;transition:.3s;box-shadow:0 8px 24px #0009}
+#eduPop.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#eduPop b{color:#74c0fc}
+
+/* ===== Action panel ===== */
+.action-panel{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px}
+@media (max-width:760px){.action-panel{grid-template-columns:1fr}}
+.herocard{display:flex;gap:12px}
+.herocard img{width:78px;height:78px;object-fit:contain;background:#0006;border-radius:12px;border:1px solid var(--line);flex:none}
+.herocard .nm{font-weight:700;font-size:16px}
+.lv{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;background:#ffd43b22;color:var(--acc);border:1px solid #ffd43b55;margin-left:6px;vertical-align:middle}
+.zline{color:#ffa94d;font-family:Consolas,monospace;font-size:13px;margin-top:3px}
+.calcs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.calcbox{background:#0005;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12.5px;line-height:1.5;font-family:Consolas,monospace}
+.calcbox h4{margin:0 0 3px;font-family:'Segoe UI',sans-serif;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--mut)}
+.i{color:#63e6be}.p{color:#ffd43b}.z{color:#ffa94d}
+.bats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.bat{background:#0006;border:1px solid var(--line);border-radius:10px;padding:6px 10px;display:flex;flex-direction:column;align-items:center;min-width:62px;transition:.15s}
+.bat .v{font-weight:800;color:var(--acc)}
+.bat .pips{font-size:10px;letter-spacing:1px;color:#8ce99a}
+.bat.sel{border-color:var(--acc);box-shadow:0 0 14px #ffd43b55;background:#ffd43b14}
+.bats .none{color:var(--mut);font-size:12px}
+.act-btns{display:flex;flex-direction:column;gap:8px}
+.big{border:0;border-radius:12px;padding:12px 14px;font-size:15px;font-weight:700;text-align:left;transition:.15s;color:#111}
+.big small{display:block;font-weight:500;opacity:.75;font-size:11.5px}
+.big.basic{background:linear-gradient(135deg,#74c0fc,#4dabf7)}
+.big.skill{background:linear-gradient(135deg,#ffd43b,#ff922b)}
+.big:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.08)}
+
+/* ===== Log & Edu ===== */
+.bottom-row{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px}
+@media (max-width:760px){.bottom-row{grid-template-columns:1fr}}
+#log{height:270px;overflow-y:auto;font-size:12.5px;line-height:1.55;padding-right:4px}
+#log::-webkit-scrollbar,#colGrid::-webkit-scrollbar{width:6px}
+#log::-webkit-scrollbar-thumb{background:#fff3;border-radius:6px}
+.entry{border-left:3px solid var(--line);padding:4px 0 6px 10px;margin-bottom:8px}
+.entry.me{border-color:#4dabf7}.entry.en{border-color:#f06595}.entry.sys{border-color:#ffd43b}.entry.fu{border-color:#a55eea}
+.entry .hd{font-weight:700;margin-bottom:2px}
+.entry .ln{font-family:Consolas,monospace;font-size:12px}
+.cr{color:#ffe066;font-weight:800}.ed{color:#ff8787}.gd{color:#8ce99a}
+#eduBox{background:linear-gradient(135deg,#1c7ed622,#7048e822);border:1px solid #74c0fc44;border-radius:12px;padding:12px;font-size:13.5px;line-height:1.55;min-height:150px}
+#eduBox.flash{animation:eduflash .8s}
+#eduBox h4{margin:0 0 6px;color:#74c0fc;font-size:14px}
+
+/* ===== Fusion lab ===== */
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tab{flex:1;border:1px solid var(--line);background:#0004;border-radius:10px;padding:8px;font-weight:700;font-size:13px}
+.tab.on{background:linear-gradient(135deg,#7048e8,#4c6ef5);border-color:transparent}
+.lab label{display:block;font-size:12px;color:var(--mut);margin:10px 0 5px;text-transform:uppercase;letter-spacing:.5px}
+.pick{display:flex;gap:6px;flex-wrap:wrap}
+.pk{display:flex;flex-direction:column;align-items:center;gap:2px;background:#0005;border:1px solid var(--line);border-radius:10px;padding:5px;width:60px;font-size:11px;position:relative}
+.pk img{width:42px;height:42px;object-fit:contain}
+.pk.on{border-color:var(--acc);box-shadow:0 0 12px #ffd43b55;background:#ffd43b14}
+.pk.locked img{filter:grayscale(1) brightness(.3)}
+.pk.locked::after{content:"🔒";position:absolute;top:3px;right:4px;font-size:11px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:#0005;padding:7px 14px;font-size:13px}
+.seg button.on{background:linear-gradient(135deg,#ffd43b,#ff922b);color:#111;font-weight:700}
+.preview{display:flex;gap:10px;margin-top:12px;background:#0005;border:1px solid var(--line);border-radius:12px;padding:10px;align-items:center}
+.preview img{width:72px;height:72px;object-fit:contain;flex:none}
+.preview .mut{font-size:12px}
+.btn-fuse{width:100%;margin-top:12px;border:0;border-radius:12px;padding:12px;font-size:16px;font-weight:800;letter-spacing:1px;color:#fff;
+  background:linear-gradient(135deg,#7048e8,#e64980);box-shadow:0 6px 20px #7048e866;transition:.15s}
+.btn-fuse:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.1)}
+.note{font-size:12px;color:var(--mut);margin-top:8px;line-height:1.5}
+.plan{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.stage{background:#0005;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12.5px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.cc{display:inline-block;padding:1px 9px;border-radius:999px;font-weight:800;font-size:12px;color:#111}
+.cc.R{background:var(--r)}.cc.C{background:var(--c)}.cc.L{background:var(--l)}
+.warn{color:#ffa8a8;font-size:12.5px;margin-top:8px}
+#colGrid{max-height:330px;overflow-y:auto}
+.colrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px;margin-bottom:10px}
+.colh{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin:6px 0}
+.card{background:#0005;border:1px solid var(--line);border-radius:10px;padding:6px 4px;text-align:center;font-size:10.5px;position:relative;transition:.15s}
+.card img{width:48px;height:48px;object-fit:contain}
+.card.owned:hover{border-color:var(--acc);transform:translateY(-2px);cursor:pointer}
+.card.active{border-color:var(--acc);box-shadow:0 0 12px #ffd43b66}
+.card.locked img{filter:grayscale(1) brightness(0);opacity:.4}
+.card.locked{color:#667}
+
+/* ===== Modal ===== */
+.modal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;z-index:50;padding:16px}
+.modal.hidden{display:none}
+.modal .box{background:#121838;border:1px solid #fff3;border-radius:18px;padding:22px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px #000}
+.modal h2{margin:0 0 10px}
+.modal .body{font-size:14px;line-height:1.6;color:#d0d6f5}
+.modal .body li{margin-bottom:4px}
+.reward{display:flex;align-items:center;gap:14px;background:#ffd43b14;border:1px solid #ffd43b55;border-radius:14px;padding:12px;margin-top:10px}
+.reward img{width:80px;height:80px;object-fit:contain}
+.reward .big-v{font-size:34px;font-weight:900;color:var(--acc)}
+.busy .lab,.busy .act-btns,.busy .bats,.busy #colGrid{pointer-events:none;opacity:.6}
+
+/* ===== Animations ===== */
+@keyframes bob{50%{transform:translateY(-8px)}}
+@keyframes float{50%{transform:translateY(-12px) scale(1.02)}}
+@keyframes pop{0%{transform:scale(.3) rotate(-10deg);filter:brightness(4)}60%{transform:scale(1.25) rotate(4deg);filter:brightness(1.8)}100%{transform:scale(1)}}
+@keyframes shake{25%{margin-left:-8px}50%{margin-left:8px}75%{margin-left:-5px}}
+@keyframes ashake{20%{transform:translate(-8px,4px)}40%{transform:translate(8px,-5px)}60%{transform:translate(-6px,-3px)}80%{transform:translate(5px,4px)}}
+@keyframes rise{0%{opacity:0;transform:translate(-50%,-30%) scale(.6)}15%{opacity:1;transform:translate(-50%,-60%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-190%) scale(1)}}
+@keyframes flash{0%{opacity:.85}100%{opacity:0}}
+@keyframes enter{from{opacity:0;transform:translateX(80px) scale(.6)}}
+@keyframes defeat{to{opacity:0;transform:translateY(40px) scale(.3) rotate(18deg);filter:blur(6px)}}
+@keyframes eduflash{0%{box-shadow:0 0 0 0 #74c0fcaa}100%{box-shadow:0 0 0 16px #74c0fc00}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">⚡</div>
+    <div><h1>Circuit Heroes</h1><small>Fusion Strategy · Elektronika Dasar SMK</small></div>
+  </div>
+  <div class="stats">
+    <span class="chip">Gelombang <b id="stWave">1</b></span>
+    <span class="chip">Skor <b id="stScore">0</b></span>
+    <span class="chip">Koleksi <b id="stCol">3/15</b></span>
+    <span class="chip">Sumber: Baterai + osilator <b>50 Hz</b></span>
+  </div>
+  <div class="head-btns">
+    <button class="btn" id="btnSound" title="Suara">🔊</button>
+    <button class="btn" id="btnHelp">❓ Cara Main</button>
+    <button class="btn" id="btnReset">↺ Reset</button>
+  </div>
+</header>
+
+<main id="root">
+  <section class="left">
+    <div id="arena">
+      <div class="ground"></div>
+      <div class="hud hud-player">
+        <div class="nm">Hero <small id="pName"></small></div>
+        <div class="hp" id="pHp"><i></i><span></span></div>
+        <div class="status" id="pStatus"></div>
+      </div>
+      <div class="hud hud-enemy">
+        <div class="nm"><span id="eName"></span><small id="eLv"></small></div>
+        <div class="hp enemy" id="eHp"><i></i><span></span></div>
+        <div class="status" id="eStatus"></div>
+      </div>
+      <div class="unit hero" id="hero">
+        <div class="sprite"><img id="heroImg" alt="hero" onerror="fallbackImg(this)"></div>
+        <div class="plate" id="heroPlate"></div>
+      </div>
+      <div class="unit enemy" id="enemy">
+        <div class="sprite">
+          <svg viewBox="0 0 240 170" width="100%">
+            <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b6f92"/><stop offset="1" stop-color="#2a2d48"/></linearGradient></defs>
+            <g fill="url(#cg)">
+              <circle cx="65" cy="95" r="45"/><circle cx="118" cy="62" r="55"/><circle cx="175" cy="95" r="45"/>
+              <rect x="65" y="95" width="110" height="45" rx="22"/>
+            </g>
+            <ellipse cx="92" cy="88" rx="12" ry="14" fill="#fff"/><ellipse cx="148" cy="88" rx="12" ry="14" fill="#fff"/>
+            <circle cx="95" cy="91" r="6" fill="#e03131"/><circle cx="145" cy="91" r="6" fill="#e03131"/>
+            <path d="M72 68 L108 80 M168 68 L132 80" stroke="#0d0f1f" stroke-width="7" stroke-linecap="round"/>
+            <path d="M88 118 l10 -9 l10 9 l10 -9 l10 9 l10 -9 l10 9" stroke="#0d0f1f" stroke-width="5" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+            <path d="M120 140 l-12 18 l12 -4 l-6 20 l22 -28 l-12 4 l10 -10z" fill="#ffe066" opacity=".9"/>
+          </svg>
+        </div>
+      </div>
+      <canvas id="fx"></canvas>
+      <div id="floaters"></div>
+      <div id="flash"></div>
+      <div id="banner"></div>
+      <div id="eduPop"></div>
+    </div>
+
+    <div class="panel action-panel">
+      <div>
+        <h3>Hero Aktif</h3>
+        <div id="heroCard"></div>
+      </div>
+      <div>
+        <h3>Baterai (sumber V) <span class="mut" style="text-transform:none;letter-spacing:0">skill memakai 1 muatan</span></h3>
+        <div class="bats" id="bats"></div>
+        <div class="act-btns">
+          <button class="big basic" id="btnBasic"></button>
+          <button class="big skill" id="btnSkill"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-row">
+      <div class="panel"><h3>Log Pertempuran &amp; Perhitungan</h3><div id="log"></div></div>
+      <div class="panel">
+        <h3>Info Edukasi <button class="btn" id="btnTip" style="padding:3px 10px;font-size:12px;text-transform:none;letter-spacing:0">Tip lain ▸</button></h3>
+        <div id="eduBox"></div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="right">
+    <div class="panel lab">
+      <h3>🔬 Lab Fusion</h3>
+      <div class="tabs">
+        <button class="tab on" data-act="tab" data-v="1">Level 1 (2 hero)</button>
+        <button class="tab" data-act="tab" data-v="2">Level 2 (3 hero)</button>
+      </div>
+      <div id="fusionBody"></div>
+    </div>
+    <div class="panel">
+      <h3>📚 Koleksi Hero <span id="colCount" class="mut" style="text-transform:none"></span></h3>
+      <div id="colGrid"></div>
+      <div class="note">Klik hero yang sudah terbuka untuk memakainya (dengan mode seri/paralel terakhir).</div>
+    </div>
+  </aside>
+</main>
+
+<div class="modal hidden" id="modal"><div class="box">
+  <h2 id="mTitle"></h2><div class="body" id="mBody"></div>
+  <button class="btn-fuse" id="mBtn"></button>
+</div></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   CIRCUIT HEROES – FUSION STRATEGY
+   Struktur: 1) Konfigurasi  2) Fisika (impedansi)  3) Data hero
+             4) Suara  5) Mesin efek (canvas)  6) State  7) UI  8) Battle
+   ===================================================================== */
+
+/* ---------- 1. KONFIGURASI ---------- */
+const CFG = {
+  F: 50,              // frekuensi sumber (Hz)
+  BASE_V: 12,         // baterai dasar untuk serangan biasa (V)
+  SKILL_MULT: 1.5,    // pengali damage skill
+  CRIT_K: 15,         // bonus critical = I x 15
+  CRIT_BASE: {basic: .10, skill: .25},
+  CRIT_PER_A: .04,    // tiap 1 A menambah peluang crit
+  CRIT_MAX_EXTRA: .35,
+  SAFE_I: 5,          // arus aman (A)
+  RECOIL_K: 4,        // damage balik per A di atas batas
+  MIN_Z: 1,           // |Z| minimum (mencegah arus tak hingga)
+  PLAYER_HP: 200,
+  SAVE_KEY: 'circuitHeroes.v1'
+};
+const COMP = {
+  R: {name: 'Resistor',  color: '#ff9f43', label: '5 Ω'},
+  C: {name: 'Kapasitor', color: '#2bcbba', label: '1000 µF'},
+  L: {name: 'Induktor',  color: '#a55eea', label: '25 mH'}
+};
+
+/* ---------- 2. FISIKA: impedansi kompleks ---------- */
+const OMEGA = 2 * Math.PI * CFG.F;
+const cx = {
+  add: (a, b) => ({re: a.re + b.re, im: a.im + b.im}),
+  mul: (a, b) => ({re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re}),
+  div: (a, b) => { const d = (b.re * b.re + b.im * b.im) || 1e-9;
+                   return {re: (a.re * b.re + a.im * b.im) / d, im: (a.im * b.re - a.re * b.im) / d}; },
+  abs: a => Math.hypot(a.re, a.im)
+};
+function compZ(k) {
+  if (k === 'R') return {re: 5, im: 0};
+  if (k === 'C') return {re: 0, im: -1 / (OMEGA * 1000e-6)};   // Xc = 1/(2πfC)
+  return {re: 0, im: OMEGA * 0.025};                            // XL = 2πfL
+}
+const combine = (a, b, mode) => mode === 'P' ? cx.div(cx.mul(a, b), cx.add(a, b)) : cx.add(a, b);
+
+function calc(Z, V, mult, isSkill) {
+  const mag = cx.abs(Z), zeff = Math.max(mag, CFG.MIN_Z);
+  const I = V / zeff, P = V * I;
+  const base = Math.round(P * mult), bonus = Math.round(I * CFG.CRIT_K);
+  const chance = Math.min(.8, (isSkill ? CFG.CRIT_BASE.skill : CFG.CRIT_BASE.basic) + Math.min(CFG.CRIT_MAX_EXTRA, I * CFG.CRIT_PER_A));
+  const recoil = I > CFG.SAFE_I ? Math.round((I - CFG.SAFE_I) * CFG.RECOIL_K) : 0;
+  return {mag, zeff, clamped: mag < CFG.MIN_Z, V, I, P, mult, base, bonus, critDmg: base + bonus, chance, recoil};
+}
+
+/* ---------- 3. DATA HERO ---------- */
+const SKILL_META = {
+  beam:      {color: '#ffd43b'},
+  burst:     {color: '#38d9a9'},
+  field:     {color: '#b197fc'},
+  mixed:     {color: '#ffa94d', color2: '#3bc9db'},
+  shield:    {color: '#4dabf7', color2: '#b197fc'},
+  resonance: {color: '#f783ac'},
+  trinity:   {color: '#ffd43b'}
+};
+const BASEFILE = {R: 'base_resistor.png', C: 'base_capacitor.png', L: 'base_inductor.png'};
+const HEROES = {};
+function defHero(id, name, kind, tier, skill, extra) {
+  HEROES[id] = Object.assign({id, name, kind, tier, skill, level: id.length - 1,
+    file: id.length === 1 ? BASEFILE[id] : 'fusion_' + id.toLowerCase() + '.png', stat: null}, extra || {});
+}
+defHero('R',  'Resistor Hero',    'beam', 1, 'Beam Listrik');
+defHero('C',  'Kapasitor Hero',   'burst', 1, 'Energy Burst');
+defHero('L',  'Induktor Hero',    'field', 1, 'Magnetic Field', {stat: {slow: .7}});
+defHero('RR', 'Double Ohm',       'beam', 2, 'Beam Listrik Ganda');
+defHero('CC', 'Farad Twins',      'burst', 2, 'Energy Burst Ganda');
+defHero('LL', 'Henry Duo',        'field', 2, 'Magnetic Field Ganda', {stat: {slow: .5}});
+defHero('RC', 'Charge Runner',    'mixed', 2, 'Mixed Beam + Charge');
+defHero('RL', 'Magnet Shield',    'shield', 2, 'Magnetic Shield Beam', {stat: {shield: .7}});
+defHero('LC', 'Resonator',        'resonance', 2, 'Resonance Pulse');
+defHero('RRC','Ohm Charger',      'mixed', 3, 'Mega Mixed Beam', {variant: 'beam'});
+defHero('RCC','Farad Striker',    'mixed', 3, 'Mega Mixed Charge', {variant: 'charge'});
+defHero('RRL','Ohm Guardian',     'shield', 3, 'Mega Shield Beam', {stat: {shield: .5}});
+defHero('RLL','Henry Warden',     'shield', 3, 'Mega Shield Field', {stat: {shield: .6, slow: .7}});
+defHero('CCL','Resonance Lord',   'resonance', 3, 'Mega Resonance Pulse');
+defHero('RCL','Trinity RLC',      'trinity', 3, 'Trinity Surge (R-L-C)', {stat: {shield: .6, slow: .6}});
+const ORDER = ['R','C','L','RR','CC','LL','RC','RL','LC','RRC','RCC','RRL','RLL','CCL','RCL'];
+const sortKey = s => s.split('').sort().join('');
+const BY_KEY = {}; ORDER.forEach(id => BY_KEY[sortKey(id)] = id);
+
+function imgSrc(id) { return 'heroes/' + HEROES[id].file; }
+function placeholder(id) {   // gambar cadangan jika file di folder heroes/ belum ada
+  let cols = id.split('').map(c => COMP[c].color); if (cols.length === 1) cols = [cols[0], cols[0]];
+  const stops = cols.map((c, i) => `<stop offset="${i / (cols.length - 1)}" stop-color="${c}"/>`).join('');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">${stops}</linearGradient></defs>
+  <line x1="100" y1="50" x2="100" y2="28" stroke="#fff" stroke-width="5"/><circle cx="100" cy="24" r="8" fill="#fff"/>
+  <rect x="48" y="170" width="30" height="20" rx="6" fill="#fff" opacity=".8"/><rect x="122" y="170" width="30" height="20" rx="6" fill="#fff" opacity=".8"/>
+  <rect x="30" y="85" width="22" height="55" rx="10" fill="url(#g)"/><rect x="148" y="85" width="22" height="55" rx="10" fill="url(#g)"/>
+  <rect x="45" y="50" width="110" height="125" rx="30" fill="url(#g)" stroke="#fff" stroke-opacity=".7" stroke-width="4"/>
+  <circle cx="78" cy="88" r="13" fill="#fff"/><circle cx="122" cy="88" r="13" fill="#fff"/><circle cx="81" cy="90" r="6" fill="#111"/><circle cx="125" cy="90" r="6" fill="#111"/>
+  <text x="100" y="150" text-anchor="middle" font-family="Arial" font-weight="800" font-size="${id.length > 2 ? 24 : 30}" fill="#10142b">${id}</text></svg>`;
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+function fallbackImg(el) { el.onerror = null; el.src = placeholder(el.dataset.id || 'R'); }
+const imgTag = (id, cls) => `<img class="${cls || ''}" data-id="${id}" src="${imgSrc(id)}" alt="${id}" onerror="fallbackImg(this)">`;
+
+/* Susun hero + hitung Z. Level 2: pasangan sejenis digabung dulu. */
+function defaultPlan(id) {
+  const l = id.split(''), cnt = {}; l.forEach(c => cnt[c] = (cnt[c] || 0) + 1);
+  const dup = Object.keys(cnt).find(k => cnt[k] === 2);
+  if (dup) return {like: true, pair: [dup, dup], single: Object.keys(cnt).find(k => k !== dup)};
+  return {like: false, pair: [l[0], l[1]], single: l[2]};
+}
+function planL2(src, add) {
+  const key = sortKey(src + add), resId = BY_KEY[key];
+  if (!resId || HEROES[resId].level !== 2) return {valid: false, key};
+  const cnt = {}; (src + add).split('').forEach(c => cnt[c] = (cnt[c] || 0) + 1);
+  const dup = Object.keys(cnt).find(k => cnt[k] === 2);
+  if (dup) return {valid: true, resId, like: true, pair: [dup, dup], single: Object.keys(cnt).find(k => k !== dup)};
+  return {valid: true, resId, like: false, pair: src.split(''), single: add};
+}
+const sym = m => m === 'P' ? ' ∥ ' : ' + ';
+function computeBuild(id, modes, plan) {
+  const h = HEROES[id], steps = []; modes = modes || []; let Z, desc;
+  if (h.level === 0) { Z = compZ(id); desc = `${COMP[id].name} (${COMP[id].label})`; }
+  else if (h.level === 1) {
+    const [a, b] = id.split(''), m = modes[0] || 'S';
+    Z = combine(compZ(a), compZ(b), m);
+    steps.push({la: a, lb: b, za: compZ(a), zb: compZ(b), m, out: Z});
+    desc = a + sym(m) + b;
+  } else {
+    plan = plan || defaultPlan(id);
+    const m1 = modes[0] || 'S', m2 = modes[1] || 'S', [p, q] = plan.pair;
+    const z1 = combine(compZ(p), compZ(q), m1);
+    steps.push({la: p, lb: q, za: compZ(p), zb: compZ(q), m: m1, out: z1});
+    Z = combine(z1, compZ(plan.single), m2);
+    steps.push({la: `(${p}${sym(m1)}${q})`, lb: plan.single, za: z1, zb: compZ(plan.single), m: m2, out: Z});
+    desc = `(${p}${sym(m1)}${q})${sym(m2)}${plan.single}`;
+  }
+  return {id, Z, desc, steps, modes: modes.slice(), plan: plan || null};
+}
+
+/* ---------- 4. SUARA (Web Audio API) ---------- */
+const Sound = {
+  ctx: null, on: true,
+  init() { if (!this.ctx) { try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+           if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+  tone(f, d, type, v, slide, delay) {
+    if (!this.on || !this.ctx) return;
+    const t = this.ctx.currentTime + (delay || 0) / 1000, o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f + slide), t + d);
+    g.gain.setValueAtTime(v || .07, t); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+    o.connect(g); g.connect(this.ctx.destination); o.start(t); o.stop(t + d + .02);
+  },
+  noise(d, v, delay, fc) {
+    if (!this.on || !this.ctx) return;
+    const n = Math.floor(this.ctx.sampleRate * d), buf = this.ctx.createBuffer(1, n, this.ctx.sampleRate), data = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    const s = this.ctx.createBufferSource(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
+    s.buffer = buf; f.type = 'lowpass'; f.frequency.value = fc || 1500; g.gain.value = v || .08;
+    s.connect(f); f.connect(g); g.connect(this.ctx.destination); s.start(this.ctx.currentTime + (delay || 0) / 1000);
+  },
+  play(n) {
+    switch (n) {
+      case 'click':  this.tone(600, .06, 'square', .04); break;
+      case 'beam':   this.tone(1000, .3, 'sawtooth', .05, -800); this.noise(.3, .05, 0, 3500); break;
+      case 'burst':  this.tone(200, .35, 'sine', .08, 500); this.tone(120, .3, 'triangle', .08, -60, 380); this.noise(.3, .09, 380, 900); break;
+      case 'field':  this.tone(90, .8, 'sine', .1, 120); this.tone(180, .8, 'triangle', .05, 90); break;
+      case 'wave':   for (let i = 0; i < 6; i++) this.tone(520 + (i % 2) * 180, .14, 'sine', .06, 0, i * 90); break;
+      case 'hit':    this.noise(.2, .12, 0, 900); this.tone(140, .15, 'square', .06, -80); break;
+      case 'crit':   [880, 1175, 1568].forEach((f, i) => this.tone(f, .25, 'triangle', .07, 0, i * 70)); this.noise(.3, .1, 0, 2500); break;
+      case 'fusion': [330, 440, 554, 660, 880].forEach((f, i) => this.tone(f, .3, 'sine', .07, 0, i * 90)); this.tone(1320, .5, 'triangle', .06, 0, 450); break;
+      case 'shield': this.tone(500, .4, 'sine', .06, 400); break;
+      case 'enemy':  this.noise(.35, .12, 0, 2500); this.tone(300, .3, 'sawtooth', .05, -200); break;
+      case 'win':    [523, 659, 784, 1047].forEach((f, i) => this.tone(f, .3, 'triangle', .08, 0, i * 120)); break;
+      case 'lose':   [400, 330, 262, 196].forEach((f, i) => this.tone(f, .4, 'sawtooth', .06, 0, i * 200)); break;
+    }
+  }
+};
+
+/* ---------- 5. MESIN EFEK (canvas) ---------- */
+const FX = (() => {
+  const cv = document.getElementById('fx'), g0 = cv.getContext('2d');
+  let W = 0, H = 0, items = [], running = false;
+  const ease = p => 1 - Math.pow(1 - p, 3);
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  function resize() {
+    const r = cv.parentElement.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+    W = r.width; H = r.height; cv.width = W * d; cv.height = H * d;
+    cv.style.width = W + 'px'; cv.style.height = H + 'px'; g0.setTransform(d, 0, 0, d, 0, 0);
+  }
+  function spawn(dur, draw, delay) {
+    items.push({start: performance.now() + (delay || 0), dur, draw});
+    if (!running) { running = true; requestAnimationFrame(loop); }
+  }
+  function loop(now) {
+    g0.clearRect(0, 0, W, H);
+    items = items.filter(it => {
+      const t = now - it.start; if (t < 0) return true; if (t > it.dur) return false;
+      g0.save(); it.draw(g0, t, t / it.dur); g0.restore(); return true;
+    });
+    if (items.length) requestAnimationFrame(loop); else running = false;
+  }
+  /* --- primitif --- */
+  function glow(g, x, y, r, color, a) {
+    g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha *= (a == null ? 1 : a);
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, '#fff'); gr.addColorStop(.28, color); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, Math.max(.1, r), 0, 7); g.fill(); g.restore();
+  }
+  function bolt(g, a, b, o) {
+    const segs = o.segs || 14, jit = o.jit || 12, dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len, pts = [];
+    for (let i = 0; i <= segs; i++) { const u = i / segs, j = (i === 0 || i === segs) ? 0 : (Math.random() - .5) * 2 * jit;
+      pts.push([a.x + dx * u + nx * j, a.y + dy * u + ny * j]); }
+    const path = () => { g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke(); };
+    g.lineJoin = 'round'; g.lineCap = 'round';
+    g.shadowColor = o.color; g.shadowBlur = 20; g.strokeStyle = o.color; g.lineWidth = o.width; path();
+    g.shadowBlur = 0; g.strokeStyle = '#fff'; g.lineWidth = Math.max(1, o.width * .35); path();
+  }
+  function particles(x, y, o) {
+    const n = o.n || 14, sp = o.speed || 160, ps = [];
+    for (let i = 0; i < n; i++) { const a = (o.angle || 0) + (Math.random() - .5) * (o.spread || Math.PI * 2), v = sp * (.4 + Math.random() * .8);
+      ps.push({vx: Math.cos(a) * v, vy: Math.sin(a) * v, s: (o.size || 3) * (.6 + Math.random() * .8)}); }
+    spawn(o.life || 600, (g, t, p) => {
+      const s = t / 1000; g.globalAlpha = 1 - p; g.fillStyle = o.color; g.shadowColor = o.color; g.shadowBlur = 8;
+      ps.forEach(q => { g.beginPath(); g.arc(x + q.vx * s, y + q.vy * s + (o.gravity || 0) * s * s / 2, q.s * (1 - p * .5), 0, 7); g.fill(); });
+    }, o.delay);
+  }
+  function ring(x, y, o) {
+    spawn(o.life || 500, (g, t, p) => {
+      g.globalAlpha = 1 - p; g.strokeStyle = o.color; g.lineWidth = (o.width || 4) * (1 - p * .6);
+      g.shadowColor = o.color; g.shadowBlur = 14; g.beginPath(); g.arc(x, y, o.r0 + (o.r1 - o.r0) * ease(p), 0, 7); g.stroke();
+    }, o.delay);
+  }
+  const flash = (x, y, r, color, life, delay) => spawn(life, (g, t, p) => glow(g, x, y, r * (1 + p * .4), color, 1 - p), delay);
+  const along = (A, B, u) => ({x: A.x + (B.x - A.x) * u, y: A.y + (B.y - A.y) * u});
+  const perp = (A, B) => { const d = Math.hypot(B.x - A.x, B.y - A.y) || 1; return {x: -(B.y - A.y) / d, y: (B.x - A.x) / d}; };
+
+  /* --- efek skill --- */
+  function beam(A, B, o) {
+    const s = o.s, d = o.delay || 0, grow = 260, hold = 380, col = o.color, w = o.w || 1;
+    spawn(grow + hold, (g, t) => {
+      const k = Math.min(1, t / grow), tip = along(A, B, ease(k)), fade = t > grow + hold - 200 ? 1 - (t - (grow + hold - 200)) / 200 : 1;
+      g.globalAlpha = fade;
+      const offs = o.double ? [-14 * s, 0, 14 * s] : [0];
+      offs.forEach(off => bolt(g, {x: A.x, y: A.y + off}, {x: tip.x, y: tip.y + off}, {color: col, width: 4 * s * w * (off ? .7 : 1), jit: 10 * s}));
+      glow(g, A.x, A.y, 26 * s, col, .8); if (k >= 1) glow(g, B.x, B.y, 42 * s * (.8 + Math.random() * .4), col, .85);
+    }, d);
+    particles(B.x, B.y, {n: 14, color: col, speed: 200 * s, life: 550, delay: d + grow});
+    return wait(d + grow);
+  }
+  function burst(A, B, o) {
+    const s = o.s, d = o.delay || 0, col = o.color, charge = 380, fly = 420, R = 22 * s, hit = d + charge + fly;
+    spawn(charge, (g, t, p) => {
+      const r = R * ease(p); glow(g, A.x, A.y, r * 1.7, col, .95);
+      for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2 + t / 120, dist = (1 - p) * 70 * s + r;
+        g.fillStyle = col; g.beginPath(); g.arc(A.x + Math.cos(a) * dist, A.y + Math.sin(a) * dist, 2.6 * s, 0, 7); g.fill(); }
+    }, d);
+    spawn(fly, (g, t, p) => {
+      const k = ease(p);
+      for (let j = 6; j >= 1; j--) { const q = along(A, B, Math.max(0, k - j * .04)); glow(g, q.x, q.y, R * (1 - j * .1), col, .5 - j * .05); }
+      const q = along(A, B, k); glow(g, q.x, q.y, R * 1.6, col, 1);
+    }, d + charge);
+    ring(B.x, B.y, {r0: 10, r1: 100 * s, color: col, life: 560, width: 6, delay: hit});
+    ring(B.x, B.y, {r0: 4, r1: 60 * s, color: '#fff', life: 400, width: 3, delay: hit});
+    particles(B.x, B.y, {n: 28, color: col, speed: 280 * s, life: 650, delay: hit});
+    flash(B.x, B.y, 80 * s, col, 280, hit);
+    return wait(hit);
+  }
+  function field(A, B, o) {
+    const s = o.s, d = o.delay || 0, col = o.color, ang = Math.atan2(B.y - A.y, B.x - A.x), travel = 620, n = 4 + (o.tier || 1);
+    for (let i = 0; i < n; i++) spawn(travel, (g, t, p) => {
+      const q = along(A, B, ease(p)), r = (18 + p * 46) * s;
+      g.globalAlpha = Math.sin(Math.PI * Math.min(1, p * 1.05)); g.strokeStyle = col; g.shadowColor = col; g.shadowBlur = 14; g.lineWidth = 3 * s;
+      g.beginPath(); g.arc(q.x, q.y, r, ang - 1, ang + 1); g.stroke();
+      g.beginPath(); g.arc(q.x, q.y, r * .6, ang - 1.1, ang + 1.1); g.stroke();
+    }, d + i * 110);
+    const st = d + travel * .8, lines = 3 + (o.tier || 1);
+    spawn(950, (g, t, p) => {
+      g.translate(B.x, B.y); g.globalAlpha = 1 - Math.max(0, (p - .6) / .4); g.strokeStyle = col; g.shadowColor = col; g.shadowBlur = 12; g.lineWidth = 2.5 * s;
+      const grow = Math.min(1, t / 260);
+      for (let i = 1; i <= lines; i++) { g.save(); g.rotate(t / 500 + i * .6); const rx = (14 + i * 17) * s * grow;
+        g.beginPath(); g.ellipse(0, 0, rx, rx * .42, 0, 0, 7); g.stroke(); g.restore(); }
+      glow(g, 0, 0, 34 * s * grow, col, .8);
+    }, st);
+    particles(B.x, B.y, {n: 12, color: col, speed: 120 * s, life: 700, delay: st});
+    return wait(st);
+  }
+  function mixed(A, B, o) {
+    const s = o.s, d = o.delay || 0, col = o.color, col2 = o.color2, grow = 260, orbs = o.orbs || 8, w = o.w || 1, p0 = perp(A, B);
+    spawn(900, (g, t, p) => {
+      const k = Math.min(1, t / grow), tip = along(A, B, ease(k)); g.globalAlpha = p > .8 ? 1 - (p - .8) / .2 : 1;
+      bolt(g, A, tip, {color: col, width: 4 * s * w, jit: 9 * s});
+      for (let i = 0; i < orbs; i++) { const u = ((t / 700) + i / orbs) % 1; if (u > k) continue;
+        const off = Math.sin(u * 14 + t / 90) * 17 * s, q = along(A, B, u); glow(g, q.x + p0.x * off, q.y + p0.y * off, 8 * s, col2, .95); }
+      glow(g, A.x, A.y, 24 * s, col, .8); if (k >= 1) glow(g, B.x, B.y, 40 * s, col, .7);
+    }, d);
+    ring(B.x, B.y, {r0: 8, r1: 80 * s, color: col2, life: 520, width: 4, delay: d + grow});
+    particles(B.x, B.y, {n: 22, color: col2, speed: 230 * s, life: 650, delay: d + grow});
+    return wait(d + grow);
+  }
+  function shield(A, B, o) {
+    const s = o.s, d = o.delay || 0, col = o.color, col2 = o.color2, src = o.src || A, ang = Math.atan2(B.y - A.y, B.x - A.x);
+    spawn(800, (g, t, p) => {
+      const r = (66 + Math.sin(t / 70) * 3) * s * .9; g.globalAlpha = Math.sin(Math.PI * p);
+      g.strokeStyle = col2; g.fillStyle = col2 + '22'; g.lineWidth = 3; g.shadowColor = col2; g.shadowBlur = 16; g.beginPath();
+      for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3 + t / 900; i ? g.lineTo(src.x + Math.cos(a) * r, src.y + Math.sin(a) * r) : g.moveTo(src.x + Math.cos(a) * r, src.y + Math.sin(a) * r); }
+      g.closePath(); g.fill(); g.stroke();
+    }, d);
+    const grow = 260;
+    spawn(grow + 320, (g, t, p) => {
+      const k = Math.min(1, t / grow), tip = along(A, B, ease(k)); g.globalAlpha = p > .75 ? 1 - (p - .75) / .25 : 1;
+      bolt(g, A, tip, {color: col, width: 5 * s, jit: 7 * s});
+      for (let i = 0; i < 5; i++) { const u = ((t / 420) + i / 5) % 1; if (u > k) continue; const q = along(A, B, u);
+        g.save(); g.translate(q.x, q.y); g.rotate(ang); g.strokeStyle = col2; g.shadowColor = col2; g.shadowBlur = 10; g.lineWidth = 2.5;
+        g.beginPath(); g.ellipse(0, 0, 6 * s, 18 * s, 0, 0, 7); g.stroke(); g.restore(); }
+      if (k >= 1) glow(g, B.x, B.y, 44 * s, col, .8);
+    }, d + 240);
+    ring(B.x, B.y, {r0: 8, r1: 85 * s, color: col, life: 520, width: 5, delay: d + 240 + grow});
+    particles(B.x, B.y, {n: 20, color: col2, speed: 220 * s, life: 650, delay: d + 240 + grow});
+    return wait(d + 240 + grow);
+  }
+  function resonance(A, B, o) {
+    const s = o.s, d = o.delay || 0, col = o.color, grow = 420, len = Math.hypot(B.x - A.x, B.y - A.y), p0 = perp(A, B);
+    spawn(950, (g, t, p) => {
+      const k = Math.min(1, t / grow); g.strokeStyle = col; g.lineWidth = 3 * s; g.shadowColor = col; g.shadowBlur = 16; g.globalAlpha = p > .8 ? 1 - (p - .8) / .2 : 1;
+      for (let pass = 0; pass < 2; pass++) { g.beginPath();
+        for (let i = 0; i <= 60; i++) { const u = i / 60 * k, amp = 20 * s * Math.sin(Math.PI * u) * (.65 + .35 * Math.sin(t / 110));
+          const off = Math.sin(u * len / 18 - t / 60 + pass * Math.PI) * amp, q = along(A, B, u);
+          i ? g.lineTo(q.x + p0.x * off, q.y + p0.y * off) : g.moveTo(q.x + p0.x * off, q.y + p0.y * off); }
+        g.stroke(); }
+      glow(g, A.x, A.y, 22 * s, col, .8);
+    }, d);
+    for (let i = 0; i < (o.pulses || 2) + 1; i++) ring(B.x, B.y, {r0: 8, r1: (60 + i * 26) * s, color: col, life: 560, width: 3.5, delay: d + grow + i * 160});
+    particles(B.x, B.y, {n: 16, color: col, speed: 180 * s, life: 650, delay: d + grow});
+    return wait(d + grow);
+  }
+  function trinity(A, B, o) {
+    const s = o.s;
+    field(A, B, {s: s * .8, color: '#b197fc', tier: 2, delay: 0});
+    beam(A, B, {s: s * .9, color: '#ffd43b', delay: 350, w: 1.2});
+    resonance(A, B, {s: s * .9, color: '#f783ac', delay: 650, pulses: 3});
+    ring(B.x, B.y, {r0: 10, r1: 150 * s, color: '#38d9a9', life: 600, width: 8, delay: 1000});
+    particles(B.x, B.y, {n: 40, color: '#ffd43b', speed: 300 * s, life: 800, delay: 1000});
+    flash(B.x, B.y, 100 * s, '#fff', 300, 1000);
+    return wait(900);
+  }
+  function runSkill(h, A, B, s, src) {
+    const m = SKILL_META[h.kind];
+    switch (h.kind) {
+      case 'beam': return beam(A, B, {s, color: m.color, double: h.tier >= 2, w: h.tier === 3 ? 1.3 : 1});
+      case 'burst': return burst(A, B, {s, color: m.color});
+      case 'field': return field(A, B, {s, color: m.color, tier: h.tier});
+      case 'mixed': return mixed(A, B, {s, color: m.color, color2: m.color2, orbs: h.variant === 'charge' ? 14 : 8, w: h.variant === 'beam' ? 1.5 : 1});
+      case 'shield': return shield(A, B, {s, color: m.color, color2: m.color2, src});
+      case 'resonance': return resonance(A, B, {s, color: m.color, pulses: h.tier});
+      default: return trinity(A, B, {s});
+    }
+  }
+  /* --- efek dampak & lainnya --- */
+  function impact(B, s, color) {
+    particles(B.x, B.y, {n: 12 + Math.round(10 * s), color, speed: 180 * s + 60, life: 550});
+    flash(B.x, B.y, 50 * s + 20, color, 240, 0); ring(B.x, B.y, {r0: 6, r1: 50 * s + 20, color, life: 380, width: 3});
+  }
+  function crit(B) {
+    spawn(700, (g, t, p) => {
+      g.translate(B.x, B.y); g.globalAlpha = 1 - p; g.shadowColor = '#ffd43b'; g.shadowBlur = 26; g.fillStyle = '#ffe066';
+      const R = 30 + p * 160; g.beginPath();
+      for (let i = 0; i < 24; i++) { const a = i * Math.PI / 12 + p * .8, rr = i % 2 ? R * .33 : R; g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+      g.closePath(); g.fill();
+    });
+    ring(B.x, B.y, {r0: 10, r1: 170, color: '#ffd43b', life: 650, width: 8});
+    ring(B.x, B.y, {r0: 6, r1: 110, color: '#fff', life: 500, width: 4, delay: 80});
+    particles(B.x, B.y, {n: 44, color: '#ffd43b', speed: 380, life: 850, gravity: 200});
+  }
+  function fusion(P, colors, level) {
+    const dur = 650, n = colors.length;
+    colors.forEach((c, i) => {
+      const a = i * Math.PI * 2 / n - Math.PI / 2 + .5, sx = P.x + Math.cos(a) * 170, sy = P.y + Math.sin(a) * 120;
+      spawn(dur, (g, t, p) => { const k = ease(p);
+        for (let j = 5; j >= 0; j--) { const kk = Math.max(0, k - j * .05); glow(g, sx + (P.x - sx) * kk, sy + (P.y - sy) * kk, 20 * (1 - j * .1), c, .55 - j * .07); }
+        glow(g, sx + (P.x - sx) * k, sy + (P.y - sy) * k, 24 * (1 - .3 * k), c, 1); });
+    });
+    flash(P.x, P.y, 140 + level * 30, '#fff', 450, dur);
+    ring(P.x, P.y, {r0: 10, r1: 150 + level * 30, color: '#fff', life: 600, width: 6, delay: dur});
+    colors.forEach((c, i) => ring(P.x, P.y, {r0: 10, r1: 100 + i * 35, color: c, life: 700, width: 4, delay: dur + 80 * i}));
+    colors.forEach(c => particles(P.x, P.y, {n: 22 + level * 10, color: c, speed: 260, life: 900, delay: dur, gravity: 80}));
+    spawn(700, (g, t, p) => { const gr = g.createLinearGradient(0, P.y - 220, 0, P.y + 100); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.5, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      g.globalAlpha = (1 - p) * .8; g.fillStyle = gr; g.fillRect(P.x - 18 * (1 - p), P.y - 220, 36 * (1 - p), 320); }, dur);
+    return wait(dur);
+  }
+  function shieldUp(P, color) {
+    ring(P.x, P.y, {r0: 20, r1: 110, color, life: 700, width: 6});
+    ring(P.x, P.y, {r0: 10, r1: 80, color: '#fff', life: 500, width: 3, delay: 100});
+    particles(P.x, P.y, {n: 18, color, speed: 140, life: 700});
+  }
+  return {resize, beam, runSkill, impact, crit, fusion, shieldUp, wait};
+})();
+
+/* ---------- 6. STATE ---------- */
+const $ = s => document.querySelector(s);
+const rnd = (a, b) => a + Math.random() * (b - a);
+const rint = (a, b) => Math.floor(rnd(a, b + 1));
+const pickOne = a => a[Math.floor(Math.random() * a.length)];
+const f1 = n => (Math.round(n * 100) / 100).toFixed(2);
+const fmtZ = z => `${f1(z.re)} ${z.im < 0 ? '−' : '+'} j${f1(Math.abs(z.im))} Ω`;
+const ENEMY_NAMES = ['Awan Gelap', 'Awan Petir', 'Awan Badai', 'Awan Mendung', 'Awan Gerhana', 'Awan Topan', 'Awan Raksasa'];
+const TIPS = [
+  ['Damage = Daya', 'P = V × I. Tegangan baterai (V) dan arus (I) sama-sama menentukan besar damage. Di game ini P diperlakukan sebagai daya semu (VA).'],
+  ['Critical = Arus', 'I = V / Z. Impedansi Z kecil → arus besar → bonus Critical (I × 15) lebih kuat dan peluang crit lebih tinggi.'],
+  ['Impedansi komponen', 'Resistor: Z = R. Kapasitor: X<sub>C</sub> = 1/(2πfC) bernilai −j. Induktor: X<sub>L</sub> = 2πfL bernilai +j. Di game ini f = 50 Hz.'],
+  ['Seri vs Paralel', 'Seri: Z = Z₁ + Z₂ (Z membesar). Paralel: Z = Z₁·Z₂ / (Z₁ + Z₂) (Z mengecil). Paralel → arus & daya lebih besar.'],
+  ['Resonansi', 'Pada rangkaian seri, X<sub>L</sub> (+j) dan X<sub>C</sub> (−j) saling meniadakan. Jika X<sub>L</sub> = X<sub>C</sub>, terjadi resonansi dan Z hanya tersisa R — arus melonjak!'],
+  ['Arus berlebih', 'Arus di atas 5 A menimbulkan panas (I²R). Hero menerima damage balik — hati-hati memakai baterai bertegangan tinggi.'],
+  ['Aturan Fusion Level 2', 'Jika ada komponen sejenis (misal R dan R), gabungkan dulu komponen sejenis, baru gabungkan dengan komponen yang berbeda. Tiap tahap punya mode Seri/Paralel sendiri.'],
+  ['Baterai', 'Serangan biasa memakai baterai dasar 12 V. Skill memakai baterai pilihanmu (1 muatan) dengan pengali ×1,5 — kalahkan awan untuk hadiah baterai baru.']
+];
+let state;
+function newState(keepCol) {
+  const saved = keepCol ? loadSave() : null;
+  const owned = new Set(['R', 'C', 'L']), builds = {};
+  if (saved) { saved.owned.forEach(id => HEROES[id] && owned.add(id)); Object.assign(builds, saved.builds || {}); }
+  state = {
+    wave: 1, score: 0, turn: 0, php: CFG.PLAYER_HP, ehp: 0, emax: 0, enemy: null, eSlow: 1, pShield: 1,
+    batteries: [{v: 12, ch: 4}, {v: 24, ch: 2}], selBat: 0, owned, builds, best: saved ? saved.best || 1 : 1,
+    busy: false, over: false, tip: 0, hero: null,
+    fu: {tab: 1, a: 'R', b: 'R', m: 'S', src: null, add: 'R', m1: 'S', m2: 'S'}
+  };
+  state.hero = computeBuild('R', []);
+}
+function save() {
+  try { localStorage.setItem(CFG.SAVE_KEY, JSON.stringify({owned: [...state.owned], builds: state.builds, best: state.best})); } catch (e) {}
+}
+function loadSave() { try { return JSON.parse(localStorage.getItem(CFG.SAVE_KEY)); } catch (e) { return null; } }
+
+/* ---------- 7. UI ---------- */
+function setBusy(b) { state.busy = b; $('#root').classList.toggle('busy', b); refreshButtons(); }
+function toast(msg) { eduPop('Info', msg); }
+let popT, banT;
+function eduPop(title, html) {
+  const el = $('#eduPop'); el.innerHTML = `<b>${title}:</b> ${html}`; el.classList.add('show');
+  clearTimeout(popT); popT = setTimeout(() => el.classList.remove('show'), 5200);
+}
+function banner(h, p) {
+  const el = $('#banner'); el.innerHTML = `<h2>${h}</h2>${p ? `<p>${p}</p>` : ''}`; el.classList.add('show');
+  clearTimeout(banT); banT = setTimeout(() => el.classList.remove('show'), 1900);
+}
+function setEdu(title, html) {
+  const el = $('#eduBox'); el.innerHTML = `<h4>${title}</h4>${html}`; el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+function logEntry(cls, head, lines) {
+  const d = document.createElement('div'); d.className = 'entry ' + cls;
+  d.innerHTML = `<div class="hd">${head}</div>` + (lines || []).map(l => `<div class="ln">${l}</div>`).join('');
+  const lg = $('#log'); lg.appendChild(d); while (lg.children.length > 120) lg.removeChild(lg.firstChild); lg.scrollTop = lg.scrollHeight;
+}
+function ctr(el) {
+  const a = $('#arena').getBoundingClientRect(), r = el.getBoundingClientRect();
+  return {x: r.left - a.left + r.width / 2, y: r.top - a.top + r.height / 2};
+}
+function floater(pos, text, cls) {
+  const d = document.createElement('div'); d.className = 'floater ' + cls; d.textContent = text;
+  d.style.left = pos.x + 'px'; d.style.top = pos.y + 'px'; $('#floaters').appendChild(d); setTimeout(() => d.remove(), 1300);
+}
+function updateHP() {
+  const set = (id, hp, mx, extra) => { const el = $(id); el.querySelector('i').style.width = Math.max(0, hp / mx * 100) + '%';
+    el.querySelector('span').textContent = `HP ${Math.max(0, Math.round(hp))} / ${mx}`; if (!extra) el.classList.toggle('low', hp / mx < .3); };
+  set('#pHp', state.php, CFG.PLAYER_HP); set('#eHp', state.ehp, state.emax, true);
+}
+function renderStatus() {
+  $('#pStatus').textContent = state.pShield < 1 ? `🛡 Perisai magnetik: serangan musuh ×${state.pShield}` : '';
+  $('#eStatus').textContent = state.eSlow < 1 ? `🧲 Terjebak medan magnet: serangan ×${state.eSlow}` : '';
+}
+function renderStats() {
+  $('#stWave').textContent = state.wave; $('#stScore').textContent = state.score;
+  $('#stCol').textContent = `${state.owned.size}/15`; $('#colCount').textContent = `${state.owned.size}/15 ditemukan`;
+}
+function setHeroImage(pop) {
+  const img = $('#heroImg'), id = state.hero.id; img.dataset.id = id; img.onerror = function () { fallbackImg(this); }; img.src = imgSrc(id);
+  $('#pName').textContent = `· ${HEROES[id].name}`; $('#heroPlate').textContent = `${HEROES[id].name} · ${state.hero.desc.length > 28 ? id : state.hero.desc}`;
+  if (pop) { const sp = $('#hero .sprite'); sp.classList.remove('pop'); void sp.offsetWidth; sp.classList.add('pop'); setTimeout(() => sp.classList.remove('pop'), 950); }
+}
+function renderHeroCard() {
+  const b = state.hero, h = HEROES[b.id], c1 = calc(b.Z, CFG.BASE_V, 1, false), bat = state.batteries[state.selBat], c2 = bat ? calc(b.Z, bat.v, CFG.SKILL_MULT, true) : null;
+  $('#heroCard').innerHTML = `
+    <div class="herocard">${imgTag(b.id)}<div>
+      <div class="nm">${h.name}<span class="lv">${h.level === 0 ? 'Dasar' : 'Fusion L' + h.level}</span></div>
+      <div class="mut" style="font-size:12.5px">${b.desc}</div>
+      <div class="zline">Z = ${fmtZ(b.Z)}</div>
+      <div class="zline">|Z| = ${f1(c1.mag)} Ω</div>
+    </div></div>
+    <div class="calcs">
+      <div class="calcbox"><h4>Serangan biasa · ${CFG.BASE_V} V</h4>I = <span class="i">${f1(c1.I)} A</span><br>P = <span class="p">${f1(c1.P)} W</span><br>Damage ≈ <b>${c1.base}</b> · Crit ${Math.round(c1.chance * 100)}%</div>
+      <div class="calcbox"><h4>Skill · ${bat ? bat.v + ' V' : '–'}</h4>${c2 ? `I = <span class="i">${f1(c2.I)} A</span><br>P×1,5 = <span class="p">${f1(c2.P * 1.5)} W</span><br>Damage ≈ <b>${c2.base}</b> · Crit ${Math.round(c2.chance * 100)}%${c2.recoil ? `<br><span class="ed">⚠ arus berlebih −${c2.recoil} HP</span>` : ''}` : '<span class="mut">Tidak ada baterai bermuatan</span>'}</div>
+    </div>
+    <div class="note">Skill: <b>${h.skill}</b>${h.stat ? ' · efek tambahan: ' + [h.stat.shield ? '🛡 perisai' : '', h.stat.slow ? '🧲 perlambat musuh' : ''].filter(Boolean).join(' + ') : ''}</div>`;
+}
+function renderBatteries() {
+  const el = $('#bats');
+  el.innerHTML = state.batteries.length ? state.batteries.map((b, i) =>
+    `<button class="bat ${i === state.selBat ? 'sel' : ''}" data-i="${i}"><span class="v">⚡${b.v} V</span><span class="pips">${'●'.repeat(Math.min(b.ch, 8))}</span></button>`).join('')
+    : '<span class="none">Baterai bermuatan habis. Serangan biasa tetap memakai baterai dasar 12 V.</span>';
+  refreshButtons(); renderHeroCard();
+}
+function refreshButtons() {
+  const h = HEROES[state.hero.id], bat = state.batteries[state.selBat], off = state.busy || state.over;
+  $('#btnBasic').innerHTML = `⚔ Serangan Biasa<small>Baterai dasar ${CFG.BASE_V} V · gratis</small>`;
+  $('#btnSkill').innerHTML = `✨ Skill: ${h.skill}<small>${bat ? `Baterai ${bat.v} V · −1 muatan (sisa ${bat.ch})` : 'Butuh baterai bermuatan'}</small>`;
+  $('#btnBasic').disabled = off; $('#btnSkill').disabled = off || !bat;
+}
+function renderCollection() {
+  const rows = [['Dasar', ORDER.slice(0, 3)], ['Fusion Level 1', ORDER.slice(3, 9)], ['Fusion Level 2', ORDER.slice(9)]];
+  $('#colGrid').innerHTML = rows.map(([t, ids]) => `<div class="colh">${t}</div><div class="colrow">` + ids.map(id => {
+    const own = state.owned.has(id);
+    return `<div class="card ${own ? 'owned' : 'locked'} ${state.hero.id === id ? 'active' : ''}" data-id="${id}" title="${own ? HEROES[id].name + ' – ' + HEROES[id].skill : 'Belum ditemukan: gabungkan ' + id.split('').join(' + ')}">${imgTag(id)}<div>${own ? HEROES[id].name : '???'}</div></div>`;
+  }).join('') + '</div>').join('');
+}
+function modeSeg(slot, cur) {
+  return `<div class="seg"><button data-act="mode" data-slot="${slot}" data-v="S" class="${cur === 'S' ? 'on' : ''}">Seri</button><button data-act="mode" data-slot="${slot}" data-v="P" class="${cur === 'P' ? 'on' : ''}">Paralel</button></div>`;
+}
+const basePick = (slot, cur) => ['R', 'C', 'L'].map(k => `<button class="pk ${cur === k ? 'on' : ''}" data-act="pick" data-slot="${slot}" data-v="${k}">${imgTag(k)}<span>${COMP[k].name}</span></button>`).join('');
+function previewHTML(b) {
+  const h = HEROES[b.id], c = calc(b.Z, CFG.BASE_V, 1, false);
+  return `<div class="preview">${imgTag(b.id)}<div><b>${h.name}</b><span class="lv">L${h.level}</span>
+    <div class="zline">${b.desc}</div><div class="zline">Z = ${fmtZ(b.Z)}</div>
+    <div class="mut">|Z| = ${f1(c.mag)} Ω → pada ${CFG.BASE_V} V: I = ${f1(c.I)} A, P = ${f1(c.P)} W</div>
+    <div class="mut">Skill: ${h.skill}</div></div></div>`;
+}
+function currentFusionBuild() {
+  const f = state.fu;
+  if (f.tab === 1) return computeBuild(BY_KEY[sortKey(f.a + f.b)], [f.m]);
+  if (!f.src) return null;
+  const pl = planL2(f.src, f.add); if (!pl.valid) return {invalid: pl};
+  return computeBuild(pl.resId, [f.m1, f.m2], pl);
+}
+function renderFusion() {
+  const f = state.fu, body = $('#fusionBody'); let html = '';
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', +t.dataset.v === f.tab));
+  if (f.tab === 1) {
+    const b = currentFusionBuild();
+    html = `<label>Hero A</label><div class="pick">${basePick('a', f.a)}</div>
+      <label>Hero B (boleh sama)</label><div class="pick">${basePick('b', f.b)}</div>
+      <label>Mode penggabungan</label>${modeSeg('m', f.m)}
+      ${previewHTML(b)}
+      <div class="note"><b>Seri</b>: Z = Z₁ + Z₂ &nbsp;|&nbsp; <b>Paralel</b>: Z = Z₁·Z₂ / (Z₁ + Z₂)</div>
+      <button class="btn-fuse" data-act="fuse">⚡ FUSI!</button>`;
+  } else {
+    const l1 = ORDER.slice(3, 9);
+    if (!f.src || !state.owned.has(f.src)) f.src = l1.find(id => state.owned.has(id)) || null;
+    html = `<label>Hero Fusion Level 1</label><div class="pick">${l1.map(id => {
+      const own = state.owned.has(id);
+      return `<button class="pk ${f.src === id ? 'on' : ''} ${own ? '' : 'locked'}" ${own ? '' : 'disabled'} data-act="src" data-v="${id}">${imgTag(id)}<span>${id}</span></button>`; }).join('')}</div>`;
+    if (!f.src) html += `<div class="warn">Belum ada hero Level 1. Buat dulu di tab Level 1 atau menangkan hadiah hero.</div>`;
+    else {
+      html += `<label>Hero tambahan</label><div class="pick">${basePick('add', f.add)}</div>`;
+      const b = currentFusionBuild();
+      if (b.invalid) html += `<div class="warn">Kombinasi ${f.src.split('').join(' + ')} + ${f.add} (${sortKey(f.src + f.add).split('').join('')}) tidak tersedia sebagai hero Level 2. Pilih hero tambahan lain.</div>`;
+      else {
+        const pl = b.plan, [p, q] = pl.pair;
+        html += `<div class="plan">
+          <div class="stage"><span><b>Tahap 1</b> · ${pl.like ? 'komponen sejenis digabung dulu' : 'gabungkan komponen hero Level 1'}:
+            <span class="cc ${p}">${p}</span> ${p === q ? '&' : '&'} <span class="cc ${q}">${q}</span></span>${modeSeg('m1', f.m1)}</div>
+          <div class="stage"><span><b>Tahap 2</b> · hasil tahap 1 + komponen berbeda <span class="cc ${pl.single}">${pl.single}</span></span>${modeSeg('m2', f.m2)}</div></div>
+          ${previewHTML(b)}
+          <button class="btn-fuse" data-act="fuse">⚡ FUSI LEVEL 2!</button>`;
+      }
+    }
+    html += `<div class="note">Aturan: jika ada komponen sejenis, gabungkan dulu yang sejenis, baru dengan yang berbeda.</div>`;
+  }
+  body.innerHTML = html;
+}
+function renderAll() { renderStats(); renderBatteries(); renderFusion(); renderCollection(); updateHP(); renderStatus(); setHeroImage(false); }
+
+/* modal */
+function showModal(title, body, btn, cb) {
+  $('#mTitle').textContent = title; $('#mBody').innerHTML = body; $('#mBtn').textContent = btn;
+  $('#modal').classList.remove('hidden'); $('#mBtn').onclick = () => { $('#modal').classList.add('hidden'); Sound.init(); Sound.play('click'); cb && cb(); };
+}
+function helpHTML() {
+  return `<ul>
+  <li><b>Tujuan:</b> kalahkan Awan Gelap gelombang demi gelombang dengan memahami impedansi rangkaian.</li>
+  <li><b>Damage = Daya</b>: P = V × I. <b>Critical = Arus</b>: I = V / Z. Z berasal dari komponen &amp; hasil fusion-mu.</li>
+  <li><b>Fusion L1:</b> gabungkan 2 hero dasar (boleh sama) dengan mode Seri atau Paralel.</li>
+  <li><b>Fusion L2:</b> hero L1 + 1 hero dasar. Komponen sejenis digabung dulu, lalu dengan yang berbeda; tiap tahap punya mode sendiri.</li>
+  <li><b>Serangan biasa</b> memakai baterai dasar 12 V (gratis). <b>Skill</b> memakai baterai pilihan (−1 muatan), damage ×1,5 dan efek visual penuh.</li>
+  <li>Fusion tidak memakai giliran — bereksperimenlah dulu, lihat pratinjau Z, I, dan P, baru serang!</li>
+  <li>Arus &gt; 5 A membuat hero kepanasan (damage balik). Menang → hadiah acak: baterai atau hero baru.</li></ul>
+  <p class="mut">Gambar hero dibaca dari folder <code>heroes/</code>. Jika file belum ada, game memakai gambar pengganti otomatis.</p>`;
+}
+
+/* ---------- Fusion actions ---------- */
+async function doFusion() {
+  if (state.busy || state.over) return;
+  const b = currentFusionBuild(); if (!b || b.invalid) return;
+  Sound.init(); setBusy(true);
+  const h = HEROES[b.id], level = h.level, firstTime = !state.owned.has(b.id);
+  state.owned.add(b.id); state.builds[b.id] = {modes: b.modes, plan: b.plan}; save();
+  const comps = b.id.split(''), colors = level === 1 ? comps.map(c => COMP[c].color) : comps.map(c => COMP[c].color);
+  Sound.play('fusion');
+  const hc = ctr($('#hero'));
+  await FX.fusion(hc, colors, level);
+  state.hero = b; setHeroImage(true); renderAll();
+  banner(`FUSION LEVEL ${level} BERHASIL!`, `${h.name} · ${b.desc}`);
+  const lines = b.steps.map((s, i) => `Tahap ${i + 1}: ${s.la} ${s.m === 'P' ? '∥' : '+'} ${s.lb} (${s.m === 'P' ? 'paralel' : 'seri'}) → Z = <span class="z">${fmtZ(s.out)}</span>`);
+  lines.push(`|Z| = <span class="z">${f1(cx.abs(b.Z))} Ω</span> · pada ${CFG.BASE_V} V: I = <span class="i">${f1(CFG.BASE_V / Math.max(cx.abs(b.Z), CFG.MIN_Z))} A</span>`);
+  logEntry('fu', `🔮 Fusion L${level}: ${h.name} ${firstTime ? '<span class="gd">(hero baru ditemukan!)</span>' : ''}`, lines);
+  const note = b.plan && b.plan.like ? `Aturan Level 2: komponen sejenis (${b.plan.pair[0]} &amp; ${b.plan.pair[1]}) digabung dulu, baru dengan ${b.plan.single}.<br>` : '';
+  const edu = note + eduForFusion(b);
+  setEdu(`Fusion ${b.desc}`, edu); eduPop('Fusion', edu);
+  await FX.wait(500); setBusy(false);
+}
+function eduForFusion(b) {
+  const ms = b.steps.map(s => s.m), t = [];
+  if (ms.includes('P')) t.push('<b>Paralel</b>: Z = Z₁·Z₂/(Z₁+Z₂) → Z mengecil → I = V/Z naik → P = V×I naik.');
+  if (ms.includes('S')) t.push('<b>Seri</b>: Z = Z₁ + Z₂ → Z membesar → I turun → P turun.');
+  if (b.id.includes('L') && b.id.includes('C')) t.push('X<sub>L</sub> (+j) dan X<sub>C</sub> (−j) berlawanan tanda sehingga saling mengurangi pada rangkaian seri.');
+  return t.join('<br>');
+}
+function equip(id) {
+  if (state.busy || !state.owned.has(id) || state.hero.id === id) return;
+  const sv = state.builds[id] || {}; state.hero = computeBuild(id, sv.modes || [], sv.plan);
+  Sound.init(); Sound.play('click'); setHeroImage(true); renderBatteries(); renderCollection();
+  setEdu(`Hero aktif: ${HEROES[id].name}`, `Rangkaian: <b>${state.hero.desc}</b><br>Z = ${fmtZ(state.hero.Z)}<br>Lihat kotak perhitungan di bawah arena untuk I dan P.`);
+}
+
+/* ---------- 8. BATTLE ---------- */
+function spawnEnemy() {
+  const w = state.wave, nm = ENEMY_NAMES[(w - 1) % ENEMY_NAMES.length] + (w > ENEMY_NAMES.length ? ' II' : '');
+  state.enemy = {name: nm, atk: 10 + 3 * w}; state.emax = state.ehp = 200 + 80 * (w - 1); state.eSlow = 1; state.pShield = 1;
+  $('#eName').textContent = nm; $('#eLv').textContent = `Lv.${w}`;
+  const e = $('#enemy'); e.classList.remove('defeat'); e.classList.remove('enter'); void e.offsetWidth; e.classList.add('enter');
+  e.querySelector('.sprite').style.filter = `hue-rotate(${((w - 1) * 40) % 360}deg) drop-shadow(0 0 18px #9c36b5aa)`;
+  updateHP(); renderStatus(); renderStats();
+  banner(`GELOMBANG ${w}`, `${nm} muncul! HP ${state.emax}`);
+  logEntry('sys', `☁ Gelombang ${w}: ${nm} muncul (HP ${state.emax}, serangan ±${state.enemy.atk})`);
+}
+function hitAnim(sel) { const el = $(sel); el.classList.add('hit'); setTimeout(() => el.classList.remove('hit'), 380); }
+function shakeArena(crit) {
+  const a = $('#arena'); a.classList.remove('shake'); void a.offsetWidth; a.classList.add('shake');
+  if (crit) { const f = $('#flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
+}
+
+async function attack(isSkill) {
+  if (state.busy || state.over) return;
+  const bat = isSkill ? state.batteries[state.selBat] : null;
+  if (isSkill && !bat) { toast('Skill membutuhkan baterai bermuatan. Menangkan pertempuran untuk hadiah baterai.'); return; }
+  Sound.init(); setBusy(true); state.turn++;
+  const b = state.hero, h = HEROES[b.id], meta = SKILL_META[h.kind];
+  const V = isSkill ? bat.v : CFG.BASE_V, mult = isSkill ? CFG.SKILL_MULT : 1;
+  const c = calc(b.Z, V, mult, isSkill), isCrit = Math.random() < c.chance, total = isCrit ? c.critDmg : c.base;
+
+  /* log perhitungan edukatif */
+  const lines = [
+    `Z = <span class="z">${fmtZ(b.Z)}</span> → |Z| = <span class="z">${f1(c.mag)} Ω</span>${c.clamped ? ` <span class="ed">(dibatasi min ${CFG.MIN_Z} Ω)</span>` : ''}`,
+    `I = V / Z = ${V} V / ${f1(c.zeff)} Ω = <span class="i">${f1(c.I)} A</span>`,
+    `P = V × I = ${V} V × ${f1(c.I)} A = <span class="p">${f1(c.P)} W</span>`,
+    isSkill ? `Damage = P × ${mult} (skill) = <b>${c.base}</b>` : `Damage = P = <b>${c.base}</b>`
+  ];
+  if (isCrit) lines.push(`<span class="cr">CRITICAL!</span> bonus arus = I × ${CFG.CRIT_K} = +${c.bonus} → total <span class="cr">${total}</span>`);
+  logEntry('me', `Giliran ${state.turn} · ${isSkill ? '✨ ' + h.skill : '⚔ Serangan biasa'} <span class="mut">(${b.desc})</span>`, lines);
+
+  if (isSkill) {
+    bat.ch--; if (bat.ch <= 0) { state.batteries.splice(state.selBat, 1); state.selBat = Math.max(0, Math.min(state.selBat, state.batteries.length - 1)); }
+    renderBatteries();
+  }
+  /* animasi serangan menuju musuh */
+  const hc = ctr($('#hero')), ec = ctr($('#enemy')), A = {x: hc.x + 70, y: hc.y - 10}, B = {x: ec.x, y: ec.y};
+  const s = isSkill ? [0, 1, 1.4, 1.9][h.tier] : [0, .45, .55, .65][h.tier];
+  $('#hero').classList.add('lunge'); setTimeout(() => $('#hero').classList.remove('lunge'), 280);
+  Sound.play({beam: 'beam', burst: 'burst', field: 'field', mixed: 'beam', shield: 'shield', resonance: 'wave', trinity: 'wave'}[h.kind]);
+  if (h.kind === 'trinity') { Sound.play('burst'); }
+  await FX.runSkill(h, A, B, s, hc);
+
+  /* damage ke musuh */
+  state.ehp = Math.max(0, state.ehp - total); updateHP();
+  hitAnim('#enemy'); Sound.play('hit'); FX.impact(B, s, meta.color);
+  floater({x: B.x, y: B.y - 40}, `-${total}`, isCrit ? 'crit' : 'dmg');
+  if (isCrit) {
+    FX.crit(B); shakeArena(true); Sound.play('crit'); floater({x: B.x, y: B.y - 95}, 'CRITICAL!', 'crit');
+    const txt = `Bonus berasal dari <b>arus</b>: I = V/Z = ${V}/${f1(c.zeff)} = <b>${f1(c.I)} A</b> → +${c.bonus}. Z lebih kecil (mis. fusion paralel) membuat arus &amp; crit lebih besar.`;
+    setEdu('⚡ Critical Damage = Arus', txt); eduPop('Critical', txt);
+  } else if (isSkill) shakeArena(false);
+
+  /* efek status skill */
+  if (isSkill && h.stat) {
+    const msgs = [];
+    if (h.stat.slow) { state.eSlow = h.stat.slow; msgs.push(`🧲 serangan musuh ×${h.stat.slow}`); }
+    if (h.stat.shield) { state.pShield = h.stat.shield; msgs.push(`🛡 perisai ×${h.stat.shield}`); FX.shieldUp(hc, '#4dabf7'); Sound.play('shield'); }
+    renderStatus(); logEntry('sys', 'Efek skill: ' + msgs.join(' · '));
+  }
+  /* damage balik karena arus berlebih */
+  if (c.recoil) {
+    state.php = Math.max(0, state.php - c.recoil); updateHP(); hitAnim('#hero'); floater({x: hc.x, y: hc.y - 60}, `-${c.recoil}`, 'pdmg');
+    logEntry('en', `<span class="ed">⚠ Arus berlebih: I = ${f1(c.I)} A &gt; ${CFG.SAFE_I} A → panas (I²R), hero menerima −${c.recoil} HP</span>`);
+    if (!isCrit) eduPop('Arus berlebih', 'Arus besar menghasilkan panas P = I²R. Gunakan baterai bertegangan tinggi dengan hati-hati!');
+    if (state.php <= 0) { await FX.wait(500); return gameOver(); }
+  }
+  if (state.ehp <= 0) { await FX.wait(300); return winWave(); }
+  await FX.wait(550); await enemyTurn();
+}
+
+async function enemyTurn() {
+  const e = state.enemy; let dmg = Math.round((e.atk + rint(0, 6)) * state.eSlow * state.pShield); const crit = Math.random() < .12; if (crit) dmg = Math.round(dmg * 1.5);
+  const notes = []; if (state.eSlow < 1) notes.push(`medan magnet ×${state.eSlow}`); if (state.pShield < 1) notes.push(`perisai ×${state.pShield}`);
+  const ec = ctr($('#enemy')), hc = ctr($('#hero'));
+  $('#enemy').classList.add('lunge'); setTimeout(() => $('#enemy').classList.remove('lunge'), 280); Sound.play('enemy');
+  await FX.beam({x: ec.x - 60, y: ec.y + 20}, {x: hc.x, y: hc.y}, {s: crit ? 1.5 : 1.1, color: '#ffe066', w: 1.2});
+  state.php = Math.max(0, state.php - dmg); updateHP(); hitAnim('#hero'); Sound.play('hit'); FX.impact({x: hc.x, y: hc.y}, 1, '#ffe066');
+  floater({x: hc.x, y: hc.y - 60}, `-${dmg}`, crit ? 'crit' : 'pdmg'); shakeArena(false);
+  logEntry('en', `☁ ${e.name} menyambar petir${crit ? ' <span class="cr">KRITIS</span>' : ''}: <span class="ed">−${dmg} HP</span>${notes.length ? ' <span class="mut">(' + notes.join(', ') + ')</span>' : ''}`);
+  state.eSlow = 1; state.pShield = 1; renderStatus();
+  if (state.php <= 0) { await FX.wait(500); return gameOver(); }
+  setBusy(false);
+}
+
+function addBattery(v, ch) {
+  const sel = state.batteries[state.selBat], ex = state.batteries.find(b => b.v === v);
+  if (ex) ex.ch += ch; else state.batteries.push({v, ch});
+  state.batteries.sort((a, b) => a.v - b.v);
+  state.selBat = sel ? Math.max(0, state.batteries.indexOf(sel)) : 0;
+}
+function giveReward() {
+  const locked = ORDER.filter(id => !state.owned.has(id));
+  if (locked.length && Math.random() < .45) {
+    const pool = []; locked.forEach(id => { const w = HEROES[id].level === 1 ? 3 : 1; for (let i = 0; i < w; i++) pool.push(id); });
+    const id = pickOne(pool); state.owned.add(id); save(); return {type: 'hero', id};
+  }
+  const v = pickOne([12, 12, 24, 24, 36, 48]), ch = rint(2, 4); addBattery(v, ch); return {type: 'bat', v, ch};
+}
+async function winWave() {
+  state.over = true; Sound.play('win'); $('#enemy').classList.add('defeat');
+  const pts = 100 * state.wave, heal = Math.round(CFG.PLAYER_HP * .35); state.score += pts; state.php = Math.min(CFG.PLAYER_HP, state.php + heal);
+  state.best = Math.max(state.best, state.wave + 1); const r = giveReward(); save(); updateHP(); renderAll();
+  logEntry('sys', `🏆 ${state.enemy.name} dikalahkan! +${pts} poin, hero pulih +${heal} HP.`);
+  await FX.wait(900);
+  const body = r.type === 'bat'
+    ? `<div class="reward"><div class="big-v">⚡${r.v} V</div><div><b>Baterai ${r.v} V</b> × ${r.ch} muatan<br><span class="mut">Tegangan tinggi → daya P = V²/Z lebih besar. Pakai untuk skill!</span></div></div>`
+    : `<div class="reward">${imgTag(r.id)}<div><b>Hero baru: ${HEROES[r.id].name}</b><br><span class="mut">Rangkaian ${r.id.split('').join(' + ')} · Skill: ${HEROES[r.id].skill}.<br>Cek di Koleksi, klik untuk memakainya.</span></div></div>`;
+  showModal(`🏆 Gelombang ${state.wave} selesai!`, `<p>Skor +${pts}. Hero memulihkan ${heal} HP.</p><p><b>Hadiah acak:</b></p>${body}`, `Lanjut ke Gelombang ${state.wave + 1} ▸`, () => {
+    state.wave++; state.over = false; renderAll(); spawnEnemy(); setBusy(false);
+  });
+}
+function gameOver() {
+  state.over = true; Sound.play('lose'); state.best = Math.max(state.best, state.wave); save(); refreshButtons();
+  logEntry('en', '💀 Hero tumbang…');
+  showModal('💀 Hero Tumbang', `<p>Kamu bertahan sampai <b>Gelombang ${state.wave}</b> dengan skor <b>${state.score}</b>.</p><p class="mut">Tips: fusion paralel menurunkan Z sehingga arus &amp; daya naik, tetapi arus &gt; ${CFG.SAFE_I} A membuat hero kepanasan. Koleksi hero tetap tersimpan.</p>`, 'Coba Lagi ▸', () => startRun(true));
+}
+function startRun(keep) {
+  newState(keep); $('#log').innerHTML = ''; $('#floaters').innerHTML = '';
+  renderAll(); spawnEnemy(); setEdu(...TIPS[0]); setBusy(false);
+  logEntry('sys', 'Selamat datang! Fusi hero di Lab, lalu serang Awan Gelap. Lihat perhitungan Z, I, dan P di log ini.');
+}
+
+/* ---------- Event ---------- */
+$('#btnBasic').onclick = () => attack(false);
+$('#btnSkill').onclick = () => attack(true);
+$('#bats').onclick = e => { const b = e.target.closest('.bat'); if (!b || state.busy) return; state.selBat = +b.dataset.i; Sound.init(); Sound.play('click'); renderBatteries(); };
+$('#colGrid').onclick = e => { const c = e.target.closest('.card'); if (c) equip(c.dataset.id); };
+$('#fusionBody').onclick = e => {
+  const t = e.target.closest('[data-act]'); if (!t || state.busy) return; const f = state.fu, a = t.dataset.act, v = t.dataset.v; Sound.init(); Sound.play('click');
+  if (a === 'pick') f[t.dataset.slot] = v;
+  else if (a === 'mode') f[t.dataset.slot] = v;
+  else if (a === 'src') f.src = v;
+  else if (a === 'fuse') return doFusion();
+  renderFusion();
+};
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => { if (state.busy) return; state.fu.tab = +t.dataset.v; Sound.init(); Sound.play('click'); renderFusion(); });
+$('#btnTip').onclick = () => { state.tip = (state.tip + 1) % TIPS.length; setEdu(...TIPS[state.tip]); };
+$('#btnHelp').onclick = () => showModal('Cara Bermain', helpHTML(), 'Mengerti!');
+$('#btnSound').onclick = () => { Sound.init(); Sound.on = !Sound.on; $('#btnSound').textContent = Sound.on ? '🔊' : '🔇'; };
+$('#btnReset').onclick = () => {
+  if (!confirm('Reset game? Seluruh progres dan koleksi hero akan dihapus.')) return;
+  try { localStorage.removeItem(CFG.SAVE_KEY); } catch (e) {}
+  startRun(false);
+};
+window.addEventListener('resize', FX.resize);
+
+/* ---------- Mulai ---------- */
+FX.resize();
+startRun(true);
+showModal('⚡ Circuit Heroes – Fusion Strategy', helpHTML(), 'Mulai Bermain ▸');
+</script>
+</body>
+</html>
