@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Circuit Heroes – Pilih Mode</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  font-family:'Segoe UI',system-ui,Roboto,Arial,sans-serif;color:#e8ecff;min-height:100vh;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  background:radial-gradient(1200px 600px at 15% -10%,#1d2a6b88,transparent),
+             radial-gradient(900px 500px at 100% 0,#5b1f8a66,transparent),#0a0e1f;
+}
+.wrap{max-width:760px;width:100%;text-align:center}
+.logo{width:68px;height:68px;margin:0 auto 14px;border-radius:18px;display:grid;place-items:center;font-size:38px;color:#222;
+  background:linear-gradient(135deg,#ffd43b,#ff922b);box-shadow:0 0 34px #ffd43b77;animation:glow 2.4s ease-in-out infinite}
+h1{margin:0;font-size:clamp(26px,5vw,38px);letter-spacing:.5px}
+.sub{color:#9aa3c7;margin:6px 0 26px}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:620px){.choices{grid-template-columns:1fr}}
+a.card{
+  position:relative;display:block;text-decoration:none;color:inherit;padding:24px 18px;border-radius:18px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(6px);
+  transition:transform .15s,border-color .15s,box-shadow .15s;
+}
+a.card:hover,a.card:focus-visible{transform:translateY(-4px);border-color:#ffd43b;box-shadow:0 10px 30px #ffd43b33;outline:none}
+a.card.rec{border-color:#ffd43b;box-shadow:0 0 0 1px #ffd43b66,0 10px 30px #ffd43b22}
+.ico{font-size:46px;line-height:1}
+.card h2{margin:10px 0 4px;font-size:20px}
+.card p{margin:0;color:#9aa3c7;font-size:13.5px;line-height:1.5}
+.tag{display:none;position:absolute;top:10px;right:10px;font-size:11px;font-weight:700;padding:2px 10px;border-radius:999px;
+  background:#ffd43b;color:#222}
+a.card.rec .tag{display:block}
+.foot{margin-top:22px;color:#7c86ad;font-size:12.5px}
+@keyframes glow{50%{box-shadow:0 0 52px #ffd43bcc}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">⚡</div>
+  <h1>Circuit Heroes</h1>
+  <div class="sub">Fusion Strategy · Game edukasi elektronika dasar untuk siswa SMK</div>
+
+  <div class="choices">
+    <a class="card" id="optDesktop" href="circuit-heroes.html" data-mode="desktop">
+      <span class="tag">Disarankan</span>
+      <div class="ico">🖥️</div>
+      <h2>Mode Desktop</h2>
+      <p>Layar lebar dengan semua panel tampil sekaligus: arena, lab fusion, koleksi, dan log.</p>
+    </a>
+    <a class="card" id="optMobile" href="circuit-heroes-mobile.html" data-mode="mobile">
+      <span class="tag">Disarankan</span>
+      <div class="ico">📱</div>
+      <h2>Mode Mobile</h2>
+      <p>Layout aplikasi untuk HP: arena tetap di atas, navigasi tab di bawah, tombol ramah sentuhan.</p>
+    </a>
+  </div>
+
+  <div class="foot" id="foot">Pilih mode yang sesuai dengan perangkatmu. Progres koleksi hero tersimpan di browser.</div>
+</div>
+<script>
+(function () {
+  var touch = window.matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window;
+  var rec = (touch && window.innerWidth < 900) || window.innerWidth < 700 ? 'mobile' : 'desktop';
+  var el = document.querySelector('[data-mode="' + rec + '"]');
+  if (el) el.classList.add('rec');
+  document.getElementById('foot').textContent = 'Perangkatmu terdeteksi lebih cocok dengan mode ' + (rec === 'mobile' ? 'Mobile' : 'Desktop') + '. Kamu tetap bisa memilih yang lain. Progres koleksi hero tersimpan di browser.';
+})();
+</script>
+</body>
+</html>
