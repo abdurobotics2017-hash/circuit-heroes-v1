@@ -378,33 +378,14 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div class="lobby-col">
       <div class="panel" id="panelFb">
         <h3>Pengaturan Firebase <span id="fbState" class="mut" style="text-transform:none;letter-spacing:0"></span></h3>
-        <div class="note">PvP online memakai Firebase Realtime Database (gratis) sebagai penghubung dua perangkat. Pengaturan ini disimpan di browser ini saja.</div>
+        <div class="note">PvP online memakai Firebase Realtime Database sebagai penghubung dua perangkat. Pengaturan ini disimpan di browser ini saja.</div>
         <label class="f" for="fbText">Tempel konfigurasi Firebase</label>
         <textarea id="fbText" placeholder='{ "apiKey": "...", "authDomain": "...", "databaseURL": "https://NAMA-default-rtdb.REGION.firebasedatabase.app", "projectId": "...", "appId": "..." }'></textarea>
         <div class="btnrow">
           <button class="btn big" id="fbSave" style="flex:1">💾 Simpan</button>
           <button class="btn big ghost" id="fbClear">Hapus</button>
         </div>
-        <div id="fbMsg" class="note"></div>
-        <details class="how">
-          <summary>Cara membuat proyek Firebase (5 menit)</summary>
-          <ol>
-            <li>Buka <b>console.firebase.google.com</b> → <b>Add project</b> (Google Analytics boleh dimatikan).</li>
-            <li><b>Build → Realtime Database → Create Database</b>, pilih lokasi terdekat (mis. Singapore), mulai dalam <b>locked mode</b>.</li>
-            <li>Buka tab <b>Rules</b>, ganti isinya dengan aturan di bawah, lalu <b>Publish</b>:
-<pre class="rules">{
-  "rules": {
-    "rooms": {
-      "$code": { ".read": true, ".write": true }
-    }
-  }
-}</pre></li>
-            <li><b>Project settings (ikon ⚙) → Your apps → Web (&lt;/&gt;)</b>, daftarkan aplikasi, lalu salin objek <code>firebaseConfig</code>.</li>
-            <li>Pastikan ada <code>databaseURL</code> di dalamnya (muncul setelah langkah 2). Tempel di kotak di atas, lalu <b>Simpan</b>.</li>
-          </ol>
-          <div class="note">Aturan di atas membuat room bisa dibaca/ditulis oleh siapa pun yang tahu kodenya (daftar room tidak bisa dilihat). Cukup untuk kelas; untuk umum, tambahkan Firebase Authentication. Agar semua siswa otomatis terhubung tanpa menempel konfigurasi, isi konstanta <code>FIREBASE_CONFIG</code> di awal script file ini.</div>
-        </details>
-      </div>
+        
       <div class="panel">
         <h3>📜 Aturan singkat</h3>
         <ul class="rules" id="rulesList"></ul>
