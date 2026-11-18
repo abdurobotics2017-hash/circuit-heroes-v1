@@ -48,13 +48,21 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 410px;gap:16px;padding:0 1
 @media (max-width:1050px){main{grid-template-columns:1fr}}
 
 /* ===== Arena ===== */
-#arena{position:relative;height:430px;border-radius:18px;overflow:hidden;border:1px solid var(--line);
-  background:linear-gradient(180deg,#141a47 0%,#2a3a7c 55%,#3d4f96 100%);box-shadow:0 10px 40px #0008}
-#arena::before{content:"";position:absolute;inset:0;
+#arena{position: relative;
+  height: 480px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background-image: url('background2.png');   
+  background-size: cover;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  box-shadow: 0 10px 40px #0008;}
+#arena::before{display: none;content:"";position:absolute;inset:0;
   background:radial-gradient(2px 2px at 20% 20%,#fff8,transparent),radial-gradient(2px 2px at 70% 12%,#fff8,transparent),
              radial-gradient(1.5px 1.5px at 45% 30%,#fff6,transparent),radial-gradient(1.5px 1.5px at 88% 40%,#fff6,transparent),
              radial-gradient(1.5px 1.5px at 8% 55%,#fff6,transparent)}
-.ground{position:absolute;left:0;right:0;bottom:0;height:90px;
+.ground{display: none;position:absolute;left:0;right:0;bottom:0;height:90px;
   background:
     linear-gradient(90deg,transparent 0 48%,#2bcbba33 48% 52%,transparent 52%),
     repeating-linear-gradient(90deg,#ffffff0a 0 2px,transparent 2px 46px),
