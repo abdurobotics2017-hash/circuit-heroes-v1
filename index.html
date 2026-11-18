@@ -19,6 +19,8 @@ body{
 h1{margin:0;font-size:clamp(26px,5vw,38px);letter-spacing:.5px}
 .sub{color:#9aa3c7;margin:6px 0 26px}
 .choices{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+a.card.pvp{grid-column:1/-1;border-color:#4c6ef5aa;background:linear-gradient(135deg,rgba(76,110,245,.16),rgba(165,94,234,.14))}
+a.card.pvp .tag2{position:absolute;top:10px;right:10px;font-size:11px;font-weight:700;padding:2px 10px;border-radius:999px;background:#4c6ef5;color:#fff}
 @media (max-width:620px){.choices{grid-template-columns:1fr}}
 a.card{
   position:relative;display:block;text-decoration:none;color:inherit;padding:24px 18px;border-radius:18px;
@@ -55,6 +57,12 @@ a.card.rec .tag{display:block}
       <div class="ico">📱</div>
       <h2>Mode Mobile</h2>
       <p>Layout aplikasi untuk HP: arena tetap di atas, navigasi tab di bawah, tombol ramah sentuhan.</p>
+    </a>
+    <a class="card pvp" href="pvp.html">
+      <span class="tag2">Baru</span>
+      <div class="ico">⚔️</div>
+      <h2>PvP Online 1 vs 1</h2>
+      <p>Adu rangkaian listrik melawan teman di perangkat berbeda lewat kode room. Rangkai 2 sirkuit, atur tegangan, hindari sekring putus!</p>
     </a>
   </div>
 
